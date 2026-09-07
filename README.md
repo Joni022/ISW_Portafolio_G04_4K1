@@ -41,7 +41,7 @@ A continuación se detalla el listado de integrantes del grupo de trabajo:
 | **10** | `90747` | *Emilio Galimberti* | [@EmilioGalimberti](https://github.com/EmilioGalimberti) | *[emiliogalimberty@gmail.com](mailto:emiliogalimberty@gmail.com)* |
 | **11** | `400140` | *Agustin Maretto* | [@agustinmtto](https://github.com/agustinmtto) | *agusmaretto6@gmail.com* |
 | **12** | `402405` | *Gino Spadoni de los Ríos* | [@GinOnline04](https://github.com/GinOnline04) | *[fagida10@gmail.com](mailto:fagida10@gmail.com)* |
-| **13** | `400553` | *Nehuel Alhue Napoli* | [@webNehuen](https://github.com/webNehuen) | *nehuenanapoli@gmail.com* |
+| **13** | `400553` | *Nehuen Alhue Napoli* | [@webNehuen](https://github.com/webNehuen) | *nehuenanapoli@gmail.com* |
 | **14** | `400939` | *Franco Matias Rojas Rodriguez* | [@franco14rojas96](https://github.com/franco14rojas96) | *[francom.rojasr@gmail.com](mailto:francom.rojasr@gmail.com)* |
 | **15** | `400892` | *Constantino Bottero* | [@ConstantinoBottero](https://github.com/ConstantinoBottero) | *constibottero@gmail.com* |
 
@@ -69,9 +69,7 @@ ISW_Portafolio_G04_4K1/
 ├── Material_Practico/
 │   ├── Parcial_1/
 │   ├── Parcial_2/
-│   └── Simulacros/
-│       ├── Enunciados/
-│       └── Soluciones/
+│   └── Templates
 │
 └── Entregas/
     │
@@ -88,7 +86,7 @@ ISW_Portafolio_G04_4K1/
             └── Devolucion/
 ```
 
-El subdirectorio `Devolucion/` será creado únicamente cuando exista una devolución formal de la cátedra asociada al Trabajo Práctico o Trabajo de Investigación correspondiente.
+
 
 ### 💻 Trabajos Prácticos de Programación
 
