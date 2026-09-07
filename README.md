@@ -69,9 +69,7 @@ ISW_Portafolio_G04_4K1/
 ├── Material_Practico/
 │   ├── Parcial_1/
 │   ├── Parcial_2/
-│   └── Simulacros/
-│       ├── Enunciados/
-│       └── Soluciones/
+│   └── Templates
 │
 └── Entregas/
     │
@@ -88,7 +86,7 @@ ISW_Portafolio_G04_4K1/
             └── Devolucion/
 ```
 
-El subdirectorio `Devolucion/` será creado únicamente cuando exista una devolución formal de la cátedra asociada al Trabajo Práctico o Trabajo de Investigación correspondiente.
+
 
 ### 💻 Trabajos Prácticos de Programación
 
