@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import jsQR from 'jsqr';
 import { PNG } from 'pngjs';
 import { generarQr } from '../src/generarQr.js';
 
@@ -15,5 +16,19 @@ describe('Código QR', () => {
     const png = PNG.sync.read(imagen);
     expect(png.width).toBeGreaterThan(0);
     expect(png.height).toBeGreaterThan(0);
+  });
+
+  it('debe recuperar el contenido original cuando se decodifica el QR generado', async () => {
+    // Preparación.
+    const contenido = 'INSCRIPCION-1';
+
+    // Ejecución: codificar y leer con una biblioteca independiente.
+    const imagen = await generarQr(contenido);
+    const png = PNG.sync.read(imagen);
+    const pixeles = new Uint8ClampedArray(png.data);
+    const decodificado = jsQR(pixeles, png.width, png.height);
+
+    // Comprobación.
+    expect(decodificado?.data).toBe('INSCRIPCION-1');
   });
 });
