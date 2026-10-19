@@ -11,8 +11,22 @@ export class ServicioInscripcion {
     this.emisorCorreo = emisorCorreo;
   }
 
-  /** @param {object} solicitud @returns {{idInscripcion: string}} Resultado. */
+  /**
+   * @param {object} solicitud Datos de actividad, turno, participantes y contacto.
+   * @returns {{idInscripcion: string}} Identificador del registro.
+   * @throws {Error} ErrorValidacion con campo y número de participante.
+   */
   inscribir(solicitud) {
+    for (const [indice, participante] of solicitud.participantes.entries()) {
+      if (!this.validarNombre(participante.nombre)) {
+        const error = new Error(`El nombre del participante ${indice + 1} no es válido`);
+        error.name = 'ErrorValidacion';
+        error.campo = 'nombre';
+        error.participante = indice + 1;
+        throw error;
+      }
+    }
+
     const idInscripcion = this.repositorio.guardarInscripcion(solicitud);
     this.emisorCorreo.enviar(this.#confirmacionDe(solicitud));
     return { idInscripcion };
