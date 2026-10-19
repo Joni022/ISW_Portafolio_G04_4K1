@@ -3,6 +3,9 @@ import { RepositorioParqueEnMemoria } from '../src/repositorioParqueEnMemoria.js
 import { EmisorCorreoSimulado } from '../src/emisorCorreoSimulado.js';
 import { ServicioInscripcion } from '../src/servicioInscripcion.js';
 
+const ANA = { nombre: 'Ana Gómez', dni: '30111222', edad: 30 };
+const JUAN = { nombre: 'Juan Pérez', dni: '28444555', edad: 34 };
+
 describe('Inscripción a actividad', () => {
   let repositorio;
   let servicio;
@@ -16,15 +19,7 @@ describe('Inscripción a actividad', () => {
 
   it('debe registrar los participantes cuando la solicitud es válida', () => {
     // Preparación.
-    const solicitud = {
-      actividad: 'safari',
-      inicioTurno: '2026-10-14T14:00:00-03:00',
-      participantes: [
-        { nombre: 'Ana Gómez', dni: '30111222', edad: 30 },
-        { nombre: 'Juan Pérez', dni: '28444555', edad: 34 },
-      ],
-      contacto: 'ana@ejemplo.com',
-    };
+    const solicitud = solicitudValida([ANA, JUAN]);
 
     // Ejecución.
     const resultado = servicio.inscribir(solicitud);
@@ -36,12 +31,7 @@ describe('Inscripción a actividad', () => {
 
   it('debe enviar un correo al contacto cuando se registra la inscripción', () => {
     // Preparación.
-    const solicitud = {
-      actividad: 'safari',
-      inicioTurno: '2026-10-14T14:00:00-03:00',
-      participantes: [{ nombre: 'Ana Gómez', dni: '30111222', edad: 30 }],
-      contacto: 'ana@ejemplo.com',
-    };
+    const solicitud = solicitudValida([ANA]);
 
     // Ejecución.
     servicio.inscribir(solicitud);
@@ -51,3 +41,12 @@ describe('Inscripción a actividad', () => {
     expect(emisorCorreo.mensajes()[0].destinatario).toBe('ana@ejemplo.com');
   });
 });
+
+function solicitudValida(participantes) {
+  return {
+    actividad: 'safari',
+    inicioTurno: '2026-10-14T14:00:00-03:00',
+    participantes,
+    contacto: 'ana@ejemplo.com',
+  };
+}
