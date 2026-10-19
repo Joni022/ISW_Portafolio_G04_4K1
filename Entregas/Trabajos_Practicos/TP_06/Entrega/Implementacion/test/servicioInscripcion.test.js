@@ -79,6 +79,20 @@ describe('Inscripción a actividad', () => {
     expect(servicio.validarNombre('Ana123')).toBe(false);
     expect(servicio.validarNombre('Ana@')).toBe(false);
   });
+  it('debe rechazar la inscripción cuando un participante tiene un nombre inválido', () => {
+    // Preparación: inválido al inicio y en otro participante del grupo.
+    const individual = solicitudValida([{ nombre: '', dni: '33222333', edad: 25 }]);
+    const grupal = solicitudValida([
+      ANA,
+      { nombre: 'Ana@', dni: '33222333', edad: 25 },
+    ]);
+
+    // Ejecución y comprobación: no se registra ni se genera confirmación.
+    expect(() => servicio.inscribir(individual)).toThrow(Error);
+    expect(() => servicio.inscribir(grupal)).toThrow(Error);
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
 });
 
 function solicitudValida(participantes) {
