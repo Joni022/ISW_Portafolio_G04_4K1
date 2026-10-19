@@ -1,3 +1,5 @@
+const CARACTERES_INVALIDOS_NOMBRE = /[^\p{L} ]/u;
+
 /** Coordina el caso de uso de inscripción. */
 export class ServicioInscripcion {
   /**
@@ -24,7 +26,7 @@ export class ServicioInscripcion {
   validarNombre(nombre) {
     return typeof nombre === 'string'
       && nombre.trim().length > 0
-      && !/[^\p{L} ]/u.test(nombre);
+      && !CARACTERES_INVALIDOS_NOMBRE.test(nombre);
   }
 
   #confirmacionDe(solicitud) {
