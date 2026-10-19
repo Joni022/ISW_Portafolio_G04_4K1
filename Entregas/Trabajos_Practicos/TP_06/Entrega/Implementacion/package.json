@@ -1,0 +1,17 @@
+{
+  "name": "ecoharmony-tp06",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prototipo": "node prototipo/serveLocal.js"
+  },
+  "devDependencies": {
+    "vitest": "5.0.5"
+  }
+}
