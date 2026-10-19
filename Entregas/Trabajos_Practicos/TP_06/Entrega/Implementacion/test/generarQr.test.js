@@ -31,4 +31,11 @@ describe('Código QR', () => {
     // Comprobación.
     expect(decodificado?.data).toBe('INSCRIPCION-1');
   });
+
+  it('debe rechazar el contenido cuando está vacío, en blanco o ausente', async () => {
+    // Ejecución y comprobación: se conserva el contrato del generador Java.
+    await expect(generarQr('')).rejects.toThrow(Error);
+    await expect(generarQr(' ')).rejects.toThrow(Error);
+    await expect(generarQr(null)).rejects.toThrow(Error);
+  });
 });
