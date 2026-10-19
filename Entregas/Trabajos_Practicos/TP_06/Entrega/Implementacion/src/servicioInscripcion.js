@@ -5,8 +5,9 @@ export class ServicioInscripcion {
     this.repositorio = repositorio;
   }
 
-  /** @param {object} solicitud @returns {{idInscripcion: string|null}} Resultado. */
+  /** @param {object} solicitud @returns {{idInscripcion: string}} Resultado. */
   inscribir(solicitud) {
-    return { idInscripcion: null };
+    const idInscripcion = this.repositorio.guardarInscripcion(solicitud);
+    return { idInscripcion };
   }
 }
