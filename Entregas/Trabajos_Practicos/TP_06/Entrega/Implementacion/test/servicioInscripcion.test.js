@@ -71,6 +71,14 @@ describe('Inscripción a actividad', () => {
     expect(emisorCorreo.mensajes()).toHaveLength(1);
     expect(emisorCorreo.mensajes()[0].participantes).toEqual(participantes);
   });
+  it('debe validar el nombre cuando se ingresan alternativas válidas e inválidas', () => {
+    expect(servicio.validarNombre('María José Pérez Gómez')).toBe(true);
+    expect(servicio.validarNombre('')).toBe(false);
+    expect(servicio.validarNombre(' ')).toBe(false);
+    expect(servicio.validarNombre(null)).toBe(false);
+    expect(servicio.validarNombre('Ana123')).toBe(false);
+    expect(servicio.validarNombre('Ana@')).toBe(false);
+  });
 });
 
 function solicitudValida(participantes) {

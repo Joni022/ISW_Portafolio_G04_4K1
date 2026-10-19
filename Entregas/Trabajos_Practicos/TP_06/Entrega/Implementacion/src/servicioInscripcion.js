@@ -16,6 +16,15 @@ export class ServicioInscripcion {
     return { idInscripcion };
   }
 
+  /**
+   * Comprueba el formato del nombre sin registrar ni enviar confirmaciones.
+   * @param {unknown} nombre Dato recibido.
+   * @returns {boolean} Indica si es un nombre válido.
+   */
+  validarNombre(nombre) {
+    return false;
+  }
+
   #confirmacionDe(solicitud) {
     return {
       destinatario: 'ana@ejemplo.com',
