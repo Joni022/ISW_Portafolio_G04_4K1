@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#386641">
+  <meta name="description" content="Viví la naturaleza de cerca. Elegí tu próxima experiencia en EcoHarmony Park.">
+  <title>EcoHarmony Park · Viví la naturaleza de cerca</title>
+  <link rel="preload" href="assets/lato-regular.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="assets/lato-bold.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="assets/photos/portada.jpg" as="image">
+  <link rel="stylesheet" href="styles.css?v=20261014-tirolesa-centered">
+  <script type="module" src="app.js?v=migracion-js-20261019"></script>
+</head>
+<body class="home-view">
+  <a class="skip-link" href="#welcome-title">Ir al contenido</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <button class="brand" data-action="home" aria-label="EcoHarmony Park, volver al inicio">
+        <svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M33 5C13 4 4 15 8 29c12 9 26-4 25-24Z" stroke="currentColor" stroke-width="2"/><path d="M6 36 27 13M15 26h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>EcoHarmony <span>Park</span></span>
+      </button>
+      <div class="header-actions">
+        <button class="help-button" data-action="help" aria-label="Ayuda para inscribirte">?</button>
+      </div>
+    </div>
+  </header>
+  <main class="welcome" id="welcome" aria-labelledby="welcome-title">
+    <div class="welcome-media" aria-hidden="true">
+      <img src="assets/photos/portada.jpg" alt="" fetchpriority="high">
+      <video class="media-video" data-media="cover" poster="assets/photos/portada.jpg" muted loop playsinline preload="auto" tabindex="-1">
+        <source src="assets/videos/portada.webm" type="video/webm">
+        <source src="assets/videos/portada.mp4" type="video/mp4">
+      </video>
+    </div>
+    <div class="welcome-shade" aria-hidden="true"></div>
+    <div class="welcome-content">
+      <span class="welcome-intro">Un lugar para reconectar.</span>
+      <h1 id="welcome-title" tabindex="-1">Viví la naturaleza<br>de cerca.</h1>
+      <p>Elegí tu próxima experiencia en EcoHarmony Park.</p>
+      <button class="cover-cta" data-action="enter">Inscribirme a actividad <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12h15m-5-5 5 5-5 5"/></svg></button>
+    </div>
+    <div class="welcome-bottom"><span>La aventura empieza con una elección.</span></div>
+  </main>
+  <div class="park-foliage selection-foliage" aria-hidden="true">
+    <i class="selection-leaf leaf-one"></i><i class="selection-leaf leaf-two"></i>
+    <i class="selection-leaf leaf-three"></i><i class="selection-leaf leaf-four"></i>
+    <i class="selection-leaf leaf-five"></i><i class="selection-leaf leaf-six"></i>
+  </div>
+  <main class="app-shell" id="main" hidden>
+    <section class="park-banner" id="park-banner" aria-label="Tu actividad" hidden></section>
+    <nav class="journey" id="stepper" aria-label="Pasos de tu experiencia"></nav>
+    <div class="layout" id="layout">
+      <section class="stage" id="stage" tabindex="-1" aria-labelledby="stage-title"></section>
+      <aside class="experience" id="experience" aria-label="Resumen de tu experiencia"></aside>
+    </div>
+  </main>
+  <div class="action-dock" id="action-dock" hidden></div>
+  <footer class="site-footer" hidden><span>EcoHarmony Park</span><p>Conectá con la naturaleza. Viví tu próxima aventura.</p><span class="footer-leaf" aria-hidden="true">↟</span></footer>
+  <dialog id="modal" aria-labelledby="modal-title"><div class="modal-inner"><button class="modal-close" data-action="close-dialog" aria-label="Cerrar ventana">×</button><div id="modal-content"></div></div></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
