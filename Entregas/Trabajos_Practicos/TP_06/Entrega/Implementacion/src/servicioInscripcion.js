@@ -22,7 +22,9 @@ export class ServicioInscripcion {
    * @returns {boolean} Indica si es un nombre válido.
    */
   validarNombre(nombre) {
-    return false;
+    return typeof nombre === 'string'
+      && nombre.trim().length > 0
+      && !/[^\p{L} ]/u.test(nombre);
   }
 
   #confirmacionDe(solicitud) {
