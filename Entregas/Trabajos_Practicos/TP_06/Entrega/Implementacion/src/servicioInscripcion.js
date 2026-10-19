@@ -12,6 +12,7 @@ export class ServicioInscripcion {
   /** @param {object} solicitud @returns {{idInscripcion: string}} Resultado. */
   inscribir(solicitud) {
     const idInscripcion = this.repositorio.guardarInscripcion(solicitud);
+    this.emisorCorreo.enviar({ destinatario: 'ana@ejemplo.com' });
     return { idInscripcion };
   }
 }
