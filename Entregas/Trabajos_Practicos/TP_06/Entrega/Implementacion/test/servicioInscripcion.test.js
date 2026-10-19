@@ -53,6 +53,24 @@ describe('Inscripción a actividad', () => {
     expect(mensaje.inicioTurno).toBe('2026-10-14T14:00:00-03:00');
     expect(mensaje.participantes).toEqual([ANA, JUAN]);
   });
+  it('debe enviar un único correo cuando la inscripción es grupal', () => {
+    // Preparación.
+    const participantes = [
+      ANA,
+      JUAN,
+      { nombre: 'Pedro Sosa', dni: '31222333', edad: 12 },
+      { nombre: 'Lucía Ríos', dni: '45333444', edad: 9 },
+      { nombre: 'Marta Díaz', dni: '27555666', edad: 61 },
+    ];
+    const solicitud = solicitudValida(participantes);
+
+    // Ejecución.
+    servicio.inscribir(solicitud);
+
+    // Comprobación.
+    expect(emisorCorreo.mensajes()).toHaveLength(1);
+    expect(emisorCorreo.mensajes()[0].participantes).toEqual(participantes);
+  });
 });
 
 function solicitudValida(participantes) {
