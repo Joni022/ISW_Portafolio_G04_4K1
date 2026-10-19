@@ -40,6 +40,19 @@ describe('Inscripción a actividad', () => {
     expect(emisorCorreo.mensajes()).toHaveLength(1);
     expect(emisorCorreo.mensajes()[0].destinatario).toBe('ana@ejemplo.com');
   });
+  it('debe resumir actividad, turno y participantes cuando se envía la confirmación', () => {
+    // Preparación.
+    const solicitud = solicitudValida([ANA, JUAN]);
+
+    // Ejecución.
+    servicio.inscribir(solicitud);
+
+    // Comprobación.
+    const mensaje = emisorCorreo.mensajes()[0];
+    expect(mensaje.actividad).toBe('safari');
+    expect(mensaje.inicioTurno).toBe('2026-10-14T14:00:00-03:00');
+    expect(mensaje.participantes).toEqual([ANA, JUAN]);
+  });
 });
 
 function solicitudValida(participantes) {
