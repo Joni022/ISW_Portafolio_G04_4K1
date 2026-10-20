@@ -524,6 +524,31 @@ describe('Inscripción a actividad', () => {
     expect(mensajes[0].participantes).toEqual(individual.participantes);
     expect(mensajes[1].participantes).toEqual(grupal.participantes);
   });
+  it('debe conservar el cupo cuando dos grupos solicitan concurrentemente los últimos lugares', async () => {
+    const primero = solicitudValida([ANA, JUAN]);
+    const segundo = solicitudValida([
+      { nombre: 'Pedro Sosa', dni: '31222333', edad: 22 },
+      { nombre: 'Lucía Ríos', dni: '45333444', edad: 19 },
+    ]);
+    repositorio.agregarTurno({
+      actividad: 'safari', inicioTurno: primero.inicioTurno, capacidad: 2, habilitado: true,
+    });
+
+    // Ambas solicitudes se inician antes de esperar sus confirmaciones.
+    const resultados = await Promise.allSettled([
+      servicio.inscribir(primero),
+      servicio.inscribir(segundo),
+    ]);
+
+    expect(resultados[0].status).toBe('fulfilled');
+    expect(resultados[1].status).toBe('rejected');
+    expect(resultados[1].reason.message).toContain('No hay cupos suficientes');
+    expect(repositorio.obtenerInscripcion(resultados[0].value.idInscripcion)).toEqual(primero);
+    expect(repositorio.obtenerInscripcion('2')).toBeNull();
+    expect(repositorio.cuposDisponibles('safari', primero.inicioTurno)).toBe(0);
+    expect(emisorCorreo.mensajes()).toHaveLength(1);
+    expect(emisorCorreo.mensajes()[0].adjuntos).toHaveLength(1);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {
