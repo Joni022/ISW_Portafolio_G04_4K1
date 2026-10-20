@@ -549,6 +549,23 @@ describe('Inscripción a actividad', () => {
     expect(emisorCorreo.mensajes()).toHaveLength(1);
     expect(emisorCorreo.mensajes()[0].adjuntos).toHaveLength(1);
   });
+  it('debe rechazar el conflicto cuando la misma persona solicita dos actividades concurrentemente', async () => {
+    const safari = solicitudValida([ANA]);
+    const jardineria = solicitudValida([ANA], 'jardineria');
+
+    const resultados = await Promise.allSettled([
+      servicio.inscribir(safari),
+      servicio.inscribir(jardineria),
+    ]);
+
+    expect(resultados[0].status).toBe('fulfilled');
+    expect(resultados[1].status).toBe('rejected');
+    expect(resultados[1].reason.message).toContain('ya tiene una inscripción en ese horario');
+    expect(repositorio.obtenerInscripcion('2')).toBeNull();
+    expect(repositorio.cuposDisponibles('safari', safari.inicioTurno)).toBe(7);
+    expect(repositorio.cuposDisponibles('jardineria', jardineria.inicioTurno)).toBe(12);
+    expect(emisorCorreo.mensajes()).toHaveLength(1);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {
