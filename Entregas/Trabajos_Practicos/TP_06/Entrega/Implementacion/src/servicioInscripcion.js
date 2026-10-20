@@ -2,7 +2,7 @@ const ACTIVIDADES = new Map([
   ['safari', { edadMinima: 0, requiereTalle: false }],
   ['jardineria', { edadMinima: 0, requiereTalle: false }],
   ['palestra', { edadMinima: 12, requiereTalle: true }],
-  ['tirolesa', { edadMinima: 0, requiereTalle: true }],
+  ['tirolesa', { edadMinima: 8, requiereTalle: true }],
 ]);
 const CARACTERES_INVALIDOS_NOMBRE = /[^\p{L} ]/u;
 const EDAD_MINIMA = 0;

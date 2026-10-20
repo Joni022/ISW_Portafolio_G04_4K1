@@ -211,6 +211,21 @@ describe('Inscripción a actividad', () => {
     expect(emisorCorreo.mensajes()).toHaveLength(0);
     expect(() => servicio.inscribir(limite)).not.toThrow();
   });
+  it('debe aplicar la edad mínima cuando se solicita Tirolesa', () => {
+    const menor = {
+      ...solicitudValida([{ ...ANA, edad: 7, talle: 'XS' }]),
+      actividad: 'tirolesa',
+    };
+    const limite = {
+      ...solicitudValida([{ ...ANA, edad: 8, talle: 'XS' }]),
+      actividad: 'tirolesa',
+    };
+
+    expect(() => servicio.inscribir(menor)).toThrow('La edad mínima para tirolesa es 8');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+    expect(() => servicio.inscribir(limite)).not.toThrow();
+  });
 });
 
 function solicitudValida(participantes) {
