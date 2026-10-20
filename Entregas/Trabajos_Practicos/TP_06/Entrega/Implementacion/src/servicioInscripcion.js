@@ -1,3 +1,9 @@
+const ACTIVIDADES = new Map([
+  ['safari', { edadMinima: 0, requiereTalle: false }],
+  ['jardineria', { edadMinima: 0, requiereTalle: false }],
+  ['palestra', { edadMinima: 0, requiereTalle: true }],
+  ['tirolesa', { edadMinima: 0, requiereTalle: true }],
+]);
 const CARACTERES_INVALIDOS_NOMBRE = /[^\p{L} ]/u;
 const EDAD_MINIMA = 0;
 const EDAD_MAXIMA = 120;
@@ -23,6 +29,7 @@ export class ServicioInscripcion {
    */
   inscribir(solicitud) {
     this.#validarParticipantes(solicitud);
+    this.#validarActividad(solicitud.actividad);
     this.#validarNombres(solicitud.participantes);
     this.#validarEdades(solicitud.participantes);
     this.#validarDocumentos(solicitud.participantes);
@@ -61,6 +68,15 @@ export class ServicioInscripcion {
   /** @param {unknown} edad @returns {boolean} Edad entera admitida por el equipo. */
   validarEdad(edad) {
     return Number.isInteger(edad) && edad >= EDAD_MINIMA && edad <= EDAD_MAXIMA;
+  }
+
+  #validarActividad(actividad) {
+    if (!ACTIVIDADES.has(actividad)) {
+      const error = new Error('La actividad no existe');
+      error.name = 'ErrorValidacion';
+      error.campo = 'actividad';
+      throw error;
+    }
   }
 
   #validarParticipantes(solicitud) {

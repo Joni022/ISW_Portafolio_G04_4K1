@@ -188,6 +188,13 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe rechazar la inscripción cuando la actividad no existe', () => {
+    const solicitud = { ...solicitudValida([ANA]), actividad: 'desconocida' };
+
+    expect(() => servicio.inscribir(solicitud)).toThrow('La actividad no existe');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
 });
 
 function solicitudValida(participantes) {
