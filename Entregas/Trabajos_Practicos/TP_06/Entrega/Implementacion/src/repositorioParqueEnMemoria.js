@@ -2,6 +2,27 @@
 export class RepositorioParqueEnMemoria {
   #inscripciones = new Map();
   #siguienteId = 1;
+  #turnos = new Map();
+
+  /** @param {object} turno Configuración local de un turno. @returns {void} */
+  agregarTurno(turno) {
+    if (!Number.isInteger(turno.capacidad) || turno.capacidad < 0
+        || !Number.isFinite(Date.parse(turno.inicioTurno))) {
+      throw new Error('La configuración del turno no es válida');
+    }
+    const clave = this.#claveTurno(turno.actividad, turno.inicioTurno);
+    this.#turnos.set(clave, structuredClone(turno));
+  }
+
+  /** @param {string} actividad @param {string} inicioTurno @returns {object|null} */
+  obtenerTurno(actividad, inicioTurno) {
+    const turno = this.#turnos.get(this.#claveTurno(actividad, inicioTurno));
+    return turno === undefined ? null : structuredClone(turno);
+  }
+
+  #claveTurno(actividad, inicioTurno) {
+    return `${actividad}|${Date.parse(inicioTurno)}`;
+  }
 
   /** @param {object} solicitud @returns {string} Identificador del registro. */
   guardarInscripcion(solicitud) {

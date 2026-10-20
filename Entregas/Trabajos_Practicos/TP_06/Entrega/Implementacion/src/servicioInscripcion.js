@@ -31,6 +31,7 @@ export class ServicioInscripcion {
   inscribir(solicitud) {
     this.#validarParticipantes(solicitud);
     this.#validarActividad(solicitud.actividad);
+    this.#validarTurno(solicitud);
     this.#validarTerminos(solicitud);
     this.#validarNombres(solicitud.participantes);
     this.#validarEdades(solicitud.participantes);
@@ -79,6 +80,16 @@ export class ServicioInscripcion {
       const error = new Error('La actividad no existe');
       error.name = 'ErrorValidacion';
       error.campo = 'actividad';
+      throw error;
+    }
+  }
+
+  #validarTurno(solicitud) {
+    const turno = this.repositorio.obtenerTurno(solicitud.actividad, solicitud.inicioTurno);
+    if (turno === null || turno.habilitado !== true) {
+      const error = new Error('El turno no existe o no está habilitado');
+      error.name = 'ErrorValidacion';
+      error.campo = 'inicioTurno';
       throw error;
     }
   }

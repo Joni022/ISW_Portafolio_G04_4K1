@@ -13,6 +13,18 @@ describe('Inscripción a actividad', () => {
 
   beforeEach(() => {
     repositorio = new RepositorioParqueEnMemoria();
+    // Catálogo local aislado por test: solo existen los turnos dados de alta.
+    for (const [actividad, capacidad] of [
+      ['safari', 8], ['jardineria', 12], ['palestra', 12], ['tirolesa', 10],
+    ]) {
+      for (const inicioTurno of [
+        '2026-10-14T14:00:00-03:00',
+        '2026-10-14T15:00:00-03:00',
+        '2026-10-15T14:00:00-03:00',
+      ]) {
+        repositorio.agregarTurno({ actividad, inicioTurno, capacidad, habilitado: true });
+      }
+    }
     emisorCorreo = new EmisorCorreoSimulado();
     servicio = new ServicioInscripcion(repositorio, emisorCorreo);
   });
@@ -320,6 +332,20 @@ describe('Inscripción a actividad', () => {
     expect(() => servicio.inscribir(palestra)).not.toThrow();
     expect(() => servicio.inscribir(tirolesa)).not.toThrow();
     expect(emisorCorreo.mensajes()).toHaveLength(2);
+  });
+  it('debe rechazar la inscripción cuando el turno no existe o no está habilitado', () => {
+    const inexistente = solicitudValida([ANA]);
+    inexistente.inicioTurno = '2026-10-14T16:00:00-03:00';
+    const deshabilitado = solicitudValida([ANA]);
+    repositorio.agregarTurno({
+      actividad: 'safari', inicioTurno: deshabilitado.inicioTurno,
+      capacidad: 8, habilitado: false,
+    });
+
+    expect(() => servicio.inscribir(inexistente)).toThrow('El turno no existe');
+    expect(() => servicio.inscribir(deshabilitado)).toThrow('no está habilitado');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
 });
 
