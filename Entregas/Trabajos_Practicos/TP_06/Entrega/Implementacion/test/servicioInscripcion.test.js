@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { RepositorioParqueEnMemoria } from '../src/repositorioParqueEnMemoria.js';
 import { EmisorCorreoSimulado } from '../src/emisorCorreoSimulado.js';
 import { ServicioInscripcion } from '../src/servicioInscripcion.js';
+import { PNG } from 'pngjs';
+import jsQR from 'jsqr';
 
 const ANA = { nombre: 'Ana Gómez', dni: '30111222', edad: 30 };
 const JUAN = { nombre: 'Juan Pérez', dni: '28444555', edad: 34 };
@@ -33,35 +35,35 @@ describe('Inscripción a actividad', () => {
     });
   });
 
-  it('debe registrar los participantes cuando la solicitud es válida', () => {
+  it('debe registrar los participantes cuando la solicitud es válida', async () => {
     // Preparación.
     const solicitud = solicitudValida([ANA, JUAN]);
 
     // Ejecución.
-    const resultado = servicio.inscribir(solicitud);
+    const resultado = await servicio.inscribir(solicitud);
 
     // Comprobación.
     expect(resultado.idInscripcion).not.toBeNull();
     expect(repositorio.obtenerInscripcion(resultado.idInscripcion)).toEqual(solicitud);
   });
 
-  it('debe enviar un correo al contacto cuando se registra la inscripción', () => {
+  it('debe enviar un correo al contacto cuando se registra la inscripción', async () => {
     // Preparación.
     const solicitud = solicitudValida([ANA]);
 
     // Ejecución.
-    servicio.inscribir(solicitud);
+    await servicio.inscribir(solicitud);
 
     // Comprobación.
     expect(emisorCorreo.mensajes()).toHaveLength(1);
     expect(emisorCorreo.mensajes()[0].destinatario).toBe('ana@ejemplo.com');
   });
-  it('debe resumir actividad, turno y participantes cuando se envía la confirmación', () => {
+  it('debe resumir actividad, turno y participantes cuando se envía la confirmación', async () => {
     // Preparación.
     const solicitud = solicitudValida([ANA, JUAN]);
 
     // Ejecución.
-    servicio.inscribir(solicitud);
+    await servicio.inscribir(solicitud);
 
     // Comprobación.
     const mensaje = emisorCorreo.mensajes()[0];
@@ -69,7 +71,7 @@ describe('Inscripción a actividad', () => {
     expect(mensaje.inicioTurno).toBe('2026-10-14T14:00:00-03:00');
     expect(mensaje.participantes).toEqual([ANA, JUAN]);
   });
-  it('debe enviar un único correo cuando la inscripción es grupal', () => {
+  it('debe enviar un único correo cuando la inscripción es grupal', async () => {
     // Preparación.
     const participantes = [
       ANA,
@@ -81,7 +83,7 @@ describe('Inscripción a actividad', () => {
     const solicitud = solicitudValida(participantes);
 
     // Ejecución.
-    servicio.inscribir(solicitud);
+    await servicio.inscribir(solicitud);
 
     // Comprobación.
     expect(emisorCorreo.mensajes()).toHaveLength(1);
@@ -95,7 +97,7 @@ describe('Inscripción a actividad', () => {
     expect(servicio.validarNombre('Ana123')).toBe(false);
     expect(servicio.validarNombre('Ana@')).toBe(false);
   });
-  it('debe rechazar la inscripción cuando un participante tiene un nombre inválido', () => {
+  it('debe rechazar la inscripción cuando un participante tiene un nombre inválido', async () => {
     // Preparación: inválido al inicio y en otro participante del grupo.
     const individual = solicitudValida([{ nombre: '', dni: '33222333', edad: 25 }]);
     const grupal = solicitudValida([
@@ -104,8 +106,8 @@ describe('Inscripción a actividad', () => {
     ]);
 
     // Ejecución y comprobación: no se registra ni se genera confirmación.
-    expect(() => servicio.inscribir(individual)).toThrow(Error);
-    expect(() => servicio.inscribir(grupal)).toThrow(Error);
+    await expect(servicio.inscribir(individual)).rejects.toThrow(Error);
+    await expect(servicio.inscribir(grupal)).rejects.toThrow(Error);
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
@@ -117,10 +119,10 @@ describe('Inscripción a actividad', () => {
     expect(servicio.validarDni('abc')).toBe(false);
     expect(servicio.validarDni('7500000.5')).toBe(false);
   });
-  it('debe rechazar la inscripción cuando un participante ya tiene otra actividad simultánea', () => {
+  it('debe rechazar la inscripción cuando un participante ya tiene otra actividad simultánea', async () => {
     // Preparación: Ana ya tiene Safari y aparece segunda en el nuevo grupo.
     const primera = solicitudValida([ANA]);
-    const registro = servicio.inscribir(primera);
+    const registro = await servicio.inscribir(primera);
     const segunda = {
       ...solicitudValida([JUAN, ANA]),
       actividad: 'jardineria',
@@ -128,16 +130,16 @@ describe('Inscripción a actividad', () => {
     };
 
     // Ejecución y comprobación: rechazo del grupo completo, sin efectos nuevos.
-    expect(() => servicio.inscribir(segunda)).toThrow(
+    await expect(servicio.inscribir(segunda)).rejects.toThrow(
       'El participante 2 ya tiene una inscripción en ese horario',
     );
     expect(repositorio.obtenerInscripcion(registro.idInscripcion)).toEqual(primera);
     expect(repositorio.obtenerInscripcion('2')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
-  it('debe aceptar la inscripción cuando cambia la persona, el horario o la fecha', () => {
+  it('debe aceptar la inscripción cuando cambia la persona, el horario o la fecha', async () => {
     // Preparación: Ana ya está inscripta a Safari el 14/10 a las 14:00.
-    servicio.inscribir(solicitudValida([ANA]));
+    await servicio.inscribir(solicitudValida([ANA]));
     const otraPersona = {
       ...solicitudValida([JUAN]),
       actividad: 'jardineria',
@@ -157,10 +159,10 @@ describe('Inscripción a actividad', () => {
     };
 
     // Ejecución y comprobación: ninguna alternativa tiene simultaneidad.
-    expect(() => servicio.inscribir(otraPersona)).not.toThrow();
-    expect(() => servicio.inscribir(otroHorario)).not.toThrow();
+    await expect(servicio.inscribir(otraPersona)).resolves.toBeDefined();
+    await expect(servicio.inscribir(otroHorario)).resolves.toBeDefined();
     ahora = new Date('2026-10-14T14:00:00-03:00');
-    expect(() => servicio.inscribir(otraFecha)).not.toThrow();
+    await expect(servicio.inscribir(otraFecha)).resolves.toBeDefined();
     expect(emisorCorreo.mensajes()).toHaveLength(4);
   });
   it('debe validar la edad cuando se ingresan enteros de 0 a 120 y datos inválidos', () => {
@@ -177,46 +179,46 @@ describe('Inscripción a actividad', () => {
     expect(servicio.validarEdad(NaN)).toBe(false);
     expect(servicio.validarEdad(Infinity)).toBe(false);
   });
-  it('debe rechazar la inscripción cuando un participante tiene una edad inválida', () => {
+  it('debe rechazar la inscripción cuando un participante tiene una edad inválida', async () => {
     // Preparación: el error puede estar en el segundo participante.
     const individual = solicitudValida([{ ...ANA, edad: -1 }]);
     const grupal = solicitudValida([ANA, { ...JUAN, edad: 'abc' }]);
 
     // Ejecución y comprobación: no se registra parcialmente ni se confirma.
-    expect(() => servicio.inscribir(individual)).toThrow('La edad del participante 1');
-    expect(() => servicio.inscribir(grupal)).toThrow('La edad del participante 2');
+    await expect(servicio.inscribir(individual)).rejects.toThrow('La edad del participante 1');
+    await expect(servicio.inscribir(grupal)).rejects.toThrow('La edad del participante 2');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe rechazar la inscripción cuando un participante tiene un DNI inválido', () => {
+  it('debe rechazar la inscripción cuando un participante tiene un DNI inválido', async () => {
     // Preparación: cada solicitud altera solamente el DNI.
     const individual = solicitudValida([{ ...ANA, dni: '999999' }]);
     const grupal = solicitudValida([ANA, { ...JUAN, dni: '1234abc' }]);
 
     // Ejecución y comprobación.
-    expect(() => servicio.inscribir(individual)).toThrow('El DNI del participante 1');
-    expect(() => servicio.inscribir(grupal)).toThrow('El DNI del participante 2');
+    await expect(servicio.inscribir(individual)).rejects.toThrow('El DNI del participante 1');
+    await expect(servicio.inscribir(grupal)).rejects.toThrow('El DNI del participante 2');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe rechazar la inscripción cuando faltan participantes o su estructura es inválida', () => {
+  it('debe rechazar la inscripción cuando faltan participantes o su estructura es inválida', async () => {
     // Preparación y comprobación del límite público, sin conversiones implícitas.
-    expect(() => servicio.inscribir(solicitudValida([]))).toThrow('al menos un participante');
-    expect(() => servicio.inscribir(solicitudValida(null))).toThrow('al menos un participante');
-    expect(() => servicio.inscribir(solicitudValida([ANA, null]))).toThrow('participante 2');
-    expect(() => servicio.inscribir(null)).toThrow('al menos un participante');
-    expect(() => servicio.inscribir()).toThrow('al menos un participante');
+    await expect(servicio.inscribir(solicitudValida([]))).rejects.toThrow('al menos un participante');
+    await expect(servicio.inscribir(solicitudValida(null))).rejects.toThrow('al menos un participante');
+    await expect(servicio.inscribir(solicitudValida([ANA, null]))).rejects.toThrow('participante 2');
+    await expect(servicio.inscribir(null)).rejects.toThrow('al menos un participante');
+    await expect(servicio.inscribir()).rejects.toThrow('al menos un participante');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe rechazar la inscripción cuando la actividad no existe', () => {
+  it('debe rechazar la inscripción cuando la actividad no existe', async () => {
     const solicitud = { ...solicitudValida([ANA]), actividad: 'desconocida' };
 
-    expect(() => servicio.inscribir(solicitud)).toThrow('La actividad no existe');
+    await expect(servicio.inscribir(solicitud)).rejects.toThrow('La actividad no existe');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe aplicar la edad mínima cuando se solicita Palestra', () => {
+  it('debe aplicar la edad mínima cuando se solicita Palestra', async () => {
     const menor = {
       ...solicitudValida([ANA, { ...JUAN, edad: 11, talle: 'M' }]),
       actividad: 'palestra',
@@ -229,12 +231,12 @@ describe('Inscripción a actividad', () => {
     };
     menor.participantes[0] = { ...ANA, talle: 'S' };
 
-    expect(() => servicio.inscribir(menor)).toThrow('La edad mínima para palestra es 12');
+    await expect(servicio.inscribir(menor)).rejects.toThrow('La edad mínima para palestra es 12');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
-    expect(() => servicio.inscribir(limite)).not.toThrow();
+    await expect(servicio.inscribir(limite)).resolves.toBeDefined();
   });
-  it('debe aplicar la edad mínima cuando se solicita Tirolesa', () => {
+  it('debe aplicar la edad mínima cuando se solicita Tirolesa', async () => {
     const menor = {
       ...solicitudValida([{ ...ANA, edad: 7, talle: 'XS' }]),
       actividad: 'tirolesa',
@@ -246,12 +248,12 @@ describe('Inscripción a actividad', () => {
       terminos: { actividadId: 'tirolesa', aceptados: true },
     };
 
-    expect(() => servicio.inscribir(menor)).toThrow('La edad mínima para tirolesa es 8');
+    await expect(servicio.inscribir(menor)).rejects.toThrow('La edad mínima para tirolesa es 8');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
-    expect(() => servicio.inscribir(limite)).not.toThrow();
+    await expect(servicio.inscribir(limite)).resolves.toBeDefined();
   });
-  it('debe aceptar todas las edades válidas cuando la actividad es Safari o Jardinería', () => {
+  it('debe aceptar todas las edades válidas cuando la actividad es Safari o Jardinería', async () => {
     const safari = solicitudValida([{ ...ANA, edad: 0 }, { ...JUAN, edad: 120 }]);
     const jardineria = {
       ...solicitudValida([{ ...ANA, edad: 0 }]),
@@ -260,11 +262,11 @@ describe('Inscripción a actividad', () => {
       inicioTurno: '2026-10-14T15:00:00-03:00',
     };
 
-    expect(() => servicio.inscribir(safari)).not.toThrow();
-    expect(() => servicio.inscribir(jardineria)).not.toThrow();
+    await expect(servicio.inscribir(safari)).resolves.toBeDefined();
+    await expect(servicio.inscribir(jardineria)).resolves.toBeDefined();
     expect(emisorCorreo.mensajes()).toHaveLength(2);
   });
-  it('debe rechazar la inscripción cuando no se aceptan los términos de la actividad', () => {
+  it('debe rechazar la inscripción cuando no se aceptan los términos de la actividad', async () => {
     const safari = solicitudValida([ANA]);
     safari.terminos.aceptados = false;
     const palestra = solicitudValida([{ ...ANA, talle: 'M' }], 'palestra');
@@ -274,54 +276,54 @@ describe('Inscripción a actividad', () => {
     const jardineria = solicitudValida([ANA], 'jardineria');
     jardineria.terminos.aceptados = false;
 
-    expect(() => servicio.inscribir(safari)).toThrow('Debés aceptar los términos');
-    expect(() => servicio.inscribir(palestra)).toThrow('Debés aceptar los términos');
-    expect(() => servicio.inscribir(tirolesa)).toThrow('Debés aceptar los términos');
-    expect(() => servicio.inscribir(jardineria)).toThrow('Debés aceptar los términos');
+    await expect(servicio.inscribir(safari)).rejects.toThrow('Debés aceptar los términos');
+    await expect(servicio.inscribir(palestra)).rejects.toThrow('Debés aceptar los términos');
+    await expect(servicio.inscribir(tirolesa)).rejects.toThrow('Debés aceptar los términos');
+    await expect(servicio.inscribir(jardineria)).rejects.toThrow('Debés aceptar los términos');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe rechazar la inscripción cuando los términos aceptados son de otra actividad', () => {
+  it('debe rechazar la inscripción cuando los términos aceptados son de otra actividad', async () => {
     const solicitud = solicitudValida([ANA]);
     solicitud.terminos.actividadId = 'jardineria';
 
-    expect(() => servicio.inscribir(solicitud)).toThrow('Debés aceptar los términos');
+    await expect(servicio.inscribir(solicitud)).rejects.toThrow('Debés aceptar los términos');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe aceptar Safari cuando se aceptan sus términos y condiciones', () => {
+  it('debe aceptar Safari cuando se aceptan sus términos y condiciones', async () => {
     const solicitud = solicitudValida([ANA]);
 
-    const resultado = servicio.inscribir(solicitud);
+    const resultado = await servicio.inscribir(solicitud);
 
     expect(repositorio.obtenerInscripcion(resultado.idInscripcion)).toEqual(solicitud);
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
-  it('debe rechazar la inscripción cuando falta el talle en Palestra o Tirolesa', () => {
+  it('debe rechazar la inscripción cuando falta el talle en Palestra o Tirolesa', async () => {
     const palestra = solicitudValida([ANA], 'palestra');
     const tirolesa = solicitudValida([{ ...ANA, talle: 'M' }, JUAN], 'tirolesa');
 
-    expect(() => servicio.inscribir(palestra)).toThrow('talle válido para el participante 1');
-    expect(() => servicio.inscribir(tirolesa)).toThrow('talle válido para el participante 2');
+    await expect(servicio.inscribir(palestra)).rejects.toThrow('talle válido para el participante 1');
+    await expect(servicio.inscribir(tirolesa)).rejects.toThrow('talle válido para el participante 2');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe rechazar la inscripción cuando el talle indicado no pertenece a XS–XXL', () => {
+  it('debe rechazar la inscripción cuando el talle indicado no pertenece a XS–XXL', async () => {
     const solicitud = solicitudValida([{ ...ANA, talle: 'XXXL' }], 'palestra');
 
-    expect(() => servicio.inscribir(solicitud)).toThrow('talle válido');
+    await expect(servicio.inscribir(solicitud)).rejects.toThrow('talle válido');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe aceptar la inscripción cuando Safari o Jardinería no indican talle', () => {
+  it('debe aceptar la inscripción cuando Safari o Jardinería no indican talle', async () => {
     const safari = solicitudValida([ANA]);
     const jardineria = solicitudValida([JUAN], 'jardineria');
 
-    expect(() => servicio.inscribir(safari)).not.toThrow();
-    expect(() => servicio.inscribir(jardineria)).not.toThrow();
+    await expect(servicio.inscribir(safari)).resolves.toBeDefined();
+    await expect(servicio.inscribir(jardineria)).resolves.toBeDefined();
     expect(emisorCorreo.mensajes()).toHaveLength(2);
   });
-  it('debe aceptar la inscripción cuando Palestra o Tirolesa reciben talles válidos', () => {
+  it('debe aceptar la inscripción cuando Palestra o Tirolesa reciben talles válidos', async () => {
     const participantes = [
       { ...ANA, talle: 'XS' },
       { ...JUAN, talle: 'S' },
@@ -334,11 +336,11 @@ describe('Inscripción a actividad', () => {
     const tirolesa = solicitudValida(participantes, 'tirolesa');
     tirolesa.inicioTurno = '2026-10-14T15:00:00-03:00';
 
-    expect(() => servicio.inscribir(palestra)).not.toThrow();
-    expect(() => servicio.inscribir(tirolesa)).not.toThrow();
+    await expect(servicio.inscribir(palestra)).resolves.toBeDefined();
+    await expect(servicio.inscribir(tirolesa)).resolves.toBeDefined();
     expect(emisorCorreo.mensajes()).toHaveLength(2);
   });
-  it('debe rechazar la inscripción cuando el turno no existe o no está habilitado', () => {
+  it('debe rechazar la inscripción cuando el turno no existe o no está habilitado', async () => {
     const inexistente = solicitudValida([ANA]);
     inexistente.inicioTurno = '2026-10-14T16:00:00-03:00';
     const deshabilitado = solicitudValida([ANA]);
@@ -347,32 +349,32 @@ describe('Inscripción a actividad', () => {
       capacidad: 8, habilitado: false,
     });
 
-    expect(() => servicio.inscribir(inexistente)).toThrow('El turno no existe');
-    expect(() => servicio.inscribir(deshabilitado)).toThrow('no está habilitado');
+    await expect(servicio.inscribir(inexistente)).rejects.toThrow('El turno no existe');
+    await expect(servicio.inscribir(deshabilitado)).rejects.toThrow('no está habilitado');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe rechazar el grupo completo cuando los cupos disponibles son insuficientes', () => {
+  it('debe rechazar el grupo completo cuando los cupos disponibles son insuficientes', async () => {
     const primera = solicitudValida([ANA]);
     repositorio.agregarTurno({
       actividad: 'safari', inicioTurno: primera.inicioTurno, capacidad: 2, habilitado: true,
     });
-    const registro = servicio.inscribir(primera);
+    const registro = await servicio.inscribir(primera);
     const grupo = solicitudValida([
       JUAN, { nombre: 'Pedro Sosa', dni: '31222333', edad: 22 },
     ]);
 
-    expect(() => servicio.inscribir(grupo)).toThrow('No hay cupos suficientes');
+    await expect(servicio.inscribir(grupo)).rejects.toThrow('No hay cupos suficientes');
     expect(repositorio.obtenerInscripcion(registro.idInscripcion)).toEqual(primera);
     expect(repositorio.obtenerInscripcion('2')).toBeNull();
     expect(repositorio.cuposDisponibles('safari', primera.inicioTurno)).toBe(1);
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
-  it('debe descontar exactamente los participantes cuando se registra el grupo', () => {
+  it('debe descontar exactamente los participantes cuando se registra el grupo', async () => {
     const solicitud = solicitudValida([ANA, JUAN]);
     const disponibles = repositorio.cuposDisponibles('safari', solicitud.inicioTurno);
 
-    const resultado = servicio.inscribir(solicitud);
+    const resultado = await servicio.inscribir(solicitud);
 
     expect(disponibles).toBe(8);
     expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(6);
@@ -380,19 +382,19 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.cuposDisponibles('jardineria', solicitud.inicioTurno)).toBe(12);
     expect(repositorio.cuposDisponibles('safari', '2026-10-14T15:00:00-03:00')).toBe(8);
   });
-  it('debe aceptar el grupo cuando la cantidad coincide con los cupos disponibles', () => {
+  it('debe aceptar el grupo cuando la cantidad coincide con los cupos disponibles', async () => {
     const solicitud = solicitudValida([ANA, JUAN]);
     repositorio.agregarTurno({
       actividad: 'safari', inicioTurno: solicitud.inicioTurno, capacidad: 2, habilitado: true,
     });
 
-    const resultado = servicio.inscribir(solicitud);
+    const resultado = await servicio.inscribir(solicitud);
 
     expect(repositorio.obtenerInscripcion(resultado.idInscripcion)).toEqual(solicitud);
     expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(0);
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
-  it('debe rechazar la inscripción cuando el parque cierra por lunes, Navidad o Año Nuevo', () => {
+  it('debe rechazar la inscripción cuando el parque cierra por lunes, Navidad o Año Nuevo', async () => {
     const lunes = solicitudValida([ANA]);
     lunes.inicioTurno = '2026-10-19T14:00:00-03:00';
     const navidad = solicitudValida([ANA]);
@@ -409,14 +411,14 @@ describe('Inscripción a actividad', () => {
       actividad: 'safari', inicioTurno: anioNuevo.inicioTurno, capacidad: 8, habilitado: true,
     });
 
-    expect(() => servicio.inscribir(lunes)).toThrow('El parque está cerrado');
-    expect(() => servicio.inscribir(navidad)).toThrow('El parque está cerrado');
-    expect(() => servicio.inscribir(anioNuevo)).toThrow('El parque está cerrado');
+    await expect(servicio.inscribir(lunes)).rejects.toThrow('El parque está cerrado');
+    await expect(servicio.inscribir(navidad)).rejects.toThrow('El parque está cerrado');
+    await expect(servicio.inscribir(anioNuevo)).rejects.toThrow('El parque está cerrado');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
     expect(repositorio.cuposDisponibles('safari', lunes.inicioTurno)).toBe(8);
   });
-  it('debe rechazar el turno cuando inicia fuera de las horas enteras de 09 a 17', () => {
+  it('debe rechazar el turno cuando inicia fuera de las horas enteras de 09 a 17', async () => {
     const temprano = solicitudValida([ANA]);
     temprano.inicioTurno = '2026-10-14T08:00:00-03:00';
     const tarde = solicitudValida([ANA]);
@@ -433,62 +435,94 @@ describe('Inscripción a actividad', () => {
       actividad: 'safari', inicioTurno: intermedio.inicioTurno, capacidad: 8, habilitado: true,
     });
 
-    expect(() => servicio.inscribir(temprano)).toThrow('entre las 09 y las 17');
-    expect(() => servicio.inscribir(tarde)).toThrow('entre las 09 y las 17');
-    expect(() => servicio.inscribir(intermedio)).toThrow('hora entera');
+    await expect(servicio.inscribir(temprano)).rejects.toThrow('entre las 09 y las 17');
+    await expect(servicio.inscribir(tarde)).rejects.toThrow('entre las 09 y las 17');
+    await expect(servicio.inscribir(intermedio)).rejects.toThrow('hora entera');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe aceptar la inscripción cuando faltan exactamente quince minutos para el turno', () => {
+  it('debe aceptar la inscripción cuando faltan exactamente quince minutos para el turno', async () => {
     ahora = new Date('2026-10-14T13:45:00-03:00');
     const solicitud = solicitudValida([ANA]);
 
-    const resultado = servicio.inscribir(solicitud);
+    const resultado = await servicio.inscribir(solicitud);
 
     expect(repositorio.obtenerInscripcion(resultado.idInscripcion)).toEqual(solicitud);
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
-  it('debe rechazar la inscripción cuando faltan menos de quince minutos para el turno', () => {
+  it('debe rechazar la inscripción cuando faltan menos de quince minutos para el turno', async () => {
     ahora = new Date('2026-10-14T13:45:00.001-03:00');
     const solicitud = solicitudValida([ANA]);
 
-    expect(() => servicio.inscribir(solicitud)).toThrow('fuera de la ventana');
+    await expect(servicio.inscribir(solicitud)).rejects.toThrow('fuera de la ventana');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(8);
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe aceptar la inscripción cuando faltan exactamente veinticuatro horas para el turno', () => {
+  it('debe aceptar la inscripción cuando faltan exactamente veinticuatro horas para el turno', async () => {
     ahora = new Date('2026-10-14T14:00:00-03:00');
     const solicitud = solicitudValida([ANA]);
     solicitud.inicioTurno = '2026-10-15T14:00:00-03:00';
 
-    const resultado = servicio.inscribir(solicitud);
+    const resultado = await servicio.inscribir(solicitud);
 
     expect(repositorio.obtenerInscripcion(resultado.idInscripcion)).toEqual(solicitud);
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
-  it('debe rechazar la inscripción cuando faltan más de veinticuatro horas para el turno', () => {
+  it('debe rechazar la inscripción cuando faltan más de veinticuatro horas para el turno', async () => {
     ahora = new Date('2026-10-14T13:59:59.999-03:00');
     const solicitud = solicitudValida([ANA]);
     solicitud.inicioTurno = '2026-10-15T14:00:00-03:00';
 
-    expect(() => servicio.inscribir(solicitud)).toThrow('fuera de la ventana');
+    await expect(servicio.inscribir(solicitud)).rejects.toThrow('fuera de la ventana');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(8);
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe enviar cada confirmación al contacto cuando las solicitudes informan correos distintos', () => {
+  it('debe enviar cada confirmación al contacto cuando las solicitudes informan correos distintos', async () => {
     const primera = solicitudValida([ANA]);
     primera.contacto = 'responsable.uno@ejemplo.com';
     const segunda = solicitudValida([JUAN]);
     segunda.contacto = 'responsable.dos@ejemplo.com';
 
-    servicio.inscribir(primera);
-    servicio.inscribir(segunda);
+    await servicio.inscribir(primera);
+    await servicio.inscribir(segunda);
 
     expect(emisorCorreo.mensajes()).toHaveLength(2);
     expect(emisorCorreo.mensajes()[0].destinatario).toBe(primera.contacto);
     expect(emisorCorreo.mensajes()[1].destinatario).toBe(segunda.contacto);
+  });
+  it('debe adjuntar un único QR cuando la inscripción es individual o grupal', async () => {
+    const individual = solicitudValida([ANA]);
+    const grupal = solicitudValida([
+      JUAN, { nombre: 'Pedro Sosa', dni: '31222333', edad: 22 },
+    ]);
+
+    const primera = await servicio.inscribir(individual);
+    const segunda = await servicio.inscribir(grupal);
+
+    const mensajes = emisorCorreo.mensajes();
+    expect(mensajes).toHaveLength(2);
+    expect(mensajes[0].adjuntos).toHaveLength(1);
+    expect(mensajes[1].adjuntos).toHaveLength(1);
+    expect(mensajes[0].adjuntos[0].tipo).toBe('image/png');
+    expect(mensajes[1].adjuntos[0].tipo).toBe('image/png');
+    const pngIndividual = PNG.sync.read(Buffer.from(mensajes[0].adjuntos[0].contenido));
+    const pngGrupal = PNG.sync.read(Buffer.from(mensajes[1].adjuntos[0].contenido));
+    const qrIndividual = jsQR(
+      new Uint8ClampedArray(pngIndividual.data), pngIndividual.width, pngIndividual.height,
+    );
+    const qrGrupal = jsQR(
+      new Uint8ClampedArray(pngGrupal.data), pngGrupal.width, pngGrupal.height,
+    );
+    expect(qrIndividual).not.toBeNull();
+    expect(qrGrupal).not.toBeNull();
+    expect(JSON.parse(qrIndividual.data)).toEqual({ idInscripcion: primera.idInscripcion });
+    expect(JSON.parse(qrGrupal.data)).toEqual({ idInscripcion: segunda.idInscripcion });
+    expect(repositorio.obtenerInscripcion(primera.idInscripcion)).toEqual(individual);
+    expect(repositorio.obtenerInscripcion(segunda.idInscripcion)).toEqual(grupal);
+    expect(mensajes[0].participantes).toEqual(individual.participantes);
+    expect(mensajes[1].participantes).toEqual(grupal.participantes);
   });
 });
 

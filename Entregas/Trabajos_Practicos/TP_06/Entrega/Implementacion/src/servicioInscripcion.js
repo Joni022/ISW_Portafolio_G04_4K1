@@ -1,3 +1,5 @@
+import { generarQr } from './generarQr.js';
+
 // Zona técnica adoptada para esta entrega; no depende de la zona del dispositivo.
 const MINUTOS_CIERRE_INSCRIPCION = 15;
 const HORAS_APERTURA_INSCRIPCION = 24;
@@ -30,18 +32,22 @@ export class ServicioInscripcion {
    * @param {object} repositorio Almacenamiento de inscripciones.
    * @param {object} emisorCorreo Bandeja de confirmaciones.
    */
-  constructor(repositorio, emisorCorreo, { reloj = { ahora: () => new Date() } } = {}) {
+  constructor(repositorio, emisorCorreo, {
+    reloj = { ahora: () => new Date() },
+    generadorQr = generarQr,
+  } = {}) {
     this.repositorio = repositorio;
     this.emisorCorreo = emisorCorreo;
     this.reloj = reloj;
+    this.generadorQr = generadorQr;
   }
 
   /**
    * @param {object} solicitud Datos de actividad, turno, participantes y contacto.
-   * @returns {{idInscripcion: string}} Identificador del registro.
+   * @returns {Promise<{idInscripcion: string}>} Identificador del registro.
    * @throws {Error} ErrorValidacion con campo y número de participante.
    */
-  inscribir(solicitud) {
+  async inscribir(solicitud) {
     this.#validarParticipantes(solicitud);
     this.#validarActividad(solicitud.actividad);
     this.#validarTurno(solicitud);
@@ -56,8 +62,17 @@ export class ServicioInscripcion {
     this.#validarDisponibilidad(solicitud);
     this.#validarCupos(solicitud);
 
+    // Validar y registrar sin await evita intercalar solicitudes en este proceso.
     const idInscripcion = this.repositorio.guardarInscripcion(solicitud);
-    this.emisorCorreo.enviar(this.#confirmacionDe(solicitud));
+    const inscripcion = this.repositorio.obtenerInscripcion(idInscripcion);
+    const imagenQr = await this.generadorQr(JSON.stringify({ idInscripcion }));
+    const confirmacion = this.#confirmacionDe(inscripcion);
+    confirmacion.adjuntos = [{
+      nombre: `inscripcion-${idInscripcion}.png`,
+      tipo: 'image/png',
+      contenido: imagenQr,
+    }];
+    this.emisorCorreo.enviar(confirmacion);
     return { idInscripcion };
   }
 
