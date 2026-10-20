@@ -457,6 +457,16 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(8);
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe aceptar la inscripción cuando faltan exactamente veinticuatro horas para el turno', () => {
+    ahora = new Date('2026-10-14T14:00:00-03:00');
+    const solicitud = solicitudValida([ANA]);
+    solicitud.inicioTurno = '2026-10-15T14:00:00-03:00';
+
+    const resultado = servicio.inscribir(solicitud);
+
+    expect(repositorio.obtenerInscripcion(resultado.idInscripcion)).toEqual(solicitud);
+    expect(emisorCorreo.mensajes()).toHaveLength(1);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {
