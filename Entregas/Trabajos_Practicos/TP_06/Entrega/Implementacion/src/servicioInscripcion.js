@@ -18,6 +18,17 @@ export class ServicioInscripcion {
    */
   inscribir(solicitud) {
     this.#validarNombres(solicitud.participantes);
+    for (const [indice, participante] of solicitud.participantes.entries()) {
+      if (this.repositorio.tieneInscripcion(participante.dni)) {
+        const error = new Error(
+          `El participante ${indice + 1} ya tiene una inscripción en ese horario`,
+        );
+        error.name = 'ErrorValidacion';
+        error.campo = 'inicioTurno';
+        error.participante = indice + 1;
+        throw error;
+      }
+    }
 
     const idInscripcion = this.repositorio.guardarInscripcion(solicitud);
     this.emisorCorreo.enviar(this.#confirmacionDe(solicitud));

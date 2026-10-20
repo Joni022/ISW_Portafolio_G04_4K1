@@ -16,4 +16,20 @@ export class RepositorioParqueEnMemoria {
     const solicitud = this.#inscripciones.get(id);
     return solicitud === undefined ? null : structuredClone(solicitud);
   }
+
+  /**
+   * Consulta si el DNI figura en una inscripción registrada.
+   * @param {string} dni Identidad declarada del participante.
+   * @returns {boolean} Indica si se encontró al participante.
+   */
+  tieneInscripcion(dni) {
+    for (const inscripcion of this.#inscripciones.values()) {
+      for (const participante of inscripcion.participantes) {
+        if (participante.dni === dni) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 }
