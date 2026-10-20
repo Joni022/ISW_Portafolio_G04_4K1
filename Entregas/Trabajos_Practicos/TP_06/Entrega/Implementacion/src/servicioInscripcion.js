@@ -30,6 +30,7 @@ export class ServicioInscripcion {
   inscribir(solicitud) {
     this.#validarParticipantes(solicitud);
     this.#validarActividad(solicitud.actividad);
+    this.#validarTerminos(solicitud);
     this.#validarNombres(solicitud.participantes);
     this.#validarEdades(solicitud.participantes);
     this.#validarDocumentos(solicitud.participantes);
@@ -76,6 +77,15 @@ export class ServicioInscripcion {
       const error = new Error('La actividad no existe');
       error.name = 'ErrorValidacion';
       error.campo = 'actividad';
+      throw error;
+    }
+  }
+
+  #validarTerminos(solicitud) {
+    if (solicitud.terminos?.aceptados !== true) {
+      const error = new Error('Debés aceptar los términos de la actividad');
+      error.name = 'ErrorValidacion';
+      error.campo = 'terminos';
       throw error;
     }
   }

@@ -108,6 +108,7 @@ describe('Inscripción a actividad', () => {
     const segunda = {
       ...solicitudValida([JUAN, ANA]),
       actividad: 'jardineria',
+      terminos: { actividadId: 'jardineria', aceptados: true },
     };
 
     // Ejecución y comprobación: rechazo del grupo completo, sin efectos nuevos.
@@ -124,15 +125,18 @@ describe('Inscripción a actividad', () => {
     const otraPersona = {
       ...solicitudValida([JUAN]),
       actividad: 'jardineria',
+      terminos: { actividadId: 'jardineria', aceptados: true },
     };
     const otroHorario = {
       ...solicitudValida([ANA]),
       actividad: 'jardineria',
+      terminos: { actividadId: 'jardineria', aceptados: true },
       inicioTurno: '2026-10-14T15:00:00-03:00',
     };
     const otraFecha = {
       ...solicitudValida([ANA]),
       actividad: 'jardineria',
+      terminos: { actividadId: 'jardineria', aceptados: true },
       inicioTurno: '2026-10-15T14:00:00-03:00',
     };
 
@@ -199,10 +203,12 @@ describe('Inscripción a actividad', () => {
     const menor = {
       ...solicitudValida([ANA, { ...JUAN, edad: 11, talle: 'M' }]),
       actividad: 'palestra',
+      terminos: { actividadId: 'palestra', aceptados: true },
     };
     const limite = {
       ...solicitudValida([{ ...JUAN, edad: 12, talle: 'M' }]),
       actividad: 'palestra',
+      terminos: { actividadId: 'palestra', aceptados: true },
     };
     menor.participantes[0] = { ...ANA, talle: 'S' };
 
@@ -215,10 +221,12 @@ describe('Inscripción a actividad', () => {
     const menor = {
       ...solicitudValida([{ ...ANA, edad: 7, talle: 'XS' }]),
       actividad: 'tirolesa',
+      terminos: { actividadId: 'tirolesa', aceptados: true },
     };
     const limite = {
       ...solicitudValida([{ ...ANA, edad: 8, talle: 'XS' }]),
       actividad: 'tirolesa',
+      terminos: { actividadId: 'tirolesa', aceptados: true },
     };
 
     expect(() => servicio.inscribir(menor)).toThrow('La edad mínima para tirolesa es 8');
@@ -231,6 +239,7 @@ describe('Inscripción a actividad', () => {
     const jardineria = {
       ...solicitudValida([{ ...ANA, edad: 0 }]),
       actividad: 'jardineria',
+      terminos: { actividadId: 'jardineria', aceptados: true },
       inicioTurno: '2026-10-14T15:00:00-03:00',
     };
 
@@ -238,11 +247,29 @@ describe('Inscripción a actividad', () => {
     expect(() => servicio.inscribir(jardineria)).not.toThrow();
     expect(emisorCorreo.mensajes()).toHaveLength(2);
   });
+  it('debe rechazar la inscripción cuando no se aceptan los términos de la actividad', () => {
+    const safari = solicitudValida([ANA]);
+    safari.terminos.aceptados = false;
+    const palestra = solicitudValida([{ ...ANA, talle: 'M' }], 'palestra');
+    delete palestra.terminos;
+    const tirolesa = solicitudValida([{ ...ANA, talle: 'M' }], 'tirolesa');
+    tirolesa.terminos.aceptados = 'true';
+    const jardineria = solicitudValida([ANA], 'jardineria');
+    jardineria.terminos.aceptados = false;
+
+    expect(() => servicio.inscribir(safari)).toThrow('Debés aceptar los términos');
+    expect(() => servicio.inscribir(palestra)).toThrow('Debés aceptar los términos');
+    expect(() => servicio.inscribir(tirolesa)).toThrow('Debés aceptar los términos');
+    expect(() => servicio.inscribir(jardineria)).toThrow('Debés aceptar los términos');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
 });
 
-function solicitudValida(participantes) {
+function solicitudValida(participantes, actividad = 'safari') {
   return {
-    actividad: 'safari',
+    actividad,
+    terminos: { actividadId: actividad, aceptados: true },
     inicioTurno: '2026-10-14T14:00:00-03:00',
     participantes,
     contacto: 'ana@ejemplo.com',
