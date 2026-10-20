@@ -226,6 +226,18 @@ describe('Inscripción a actividad', () => {
     expect(emisorCorreo.mensajes()).toHaveLength(0);
     expect(() => servicio.inscribir(limite)).not.toThrow();
   });
+  it('debe aceptar todas las edades válidas cuando la actividad es Safari o Jardinería', () => {
+    const safari = solicitudValida([{ ...ANA, edad: 0 }, { ...JUAN, edad: 120 }]);
+    const jardineria = {
+      ...solicitudValida([{ ...ANA, edad: 0 }]),
+      actividad: 'jardineria',
+      inicioTurno: '2026-10-14T15:00:00-03:00',
+    };
+
+    expect(() => servicio.inscribir(safari)).not.toThrow();
+    expect(() => servicio.inscribir(jardineria)).not.toThrow();
+    expect(emisorCorreo.mensajes()).toHaveLength(2);
+  });
 });
 
 function solicitudValida(participantes) {
