@@ -36,6 +36,15 @@ export class ServicioInscripcion {
       && !CARACTERES_INVALIDOS_NOMBRE.test(nombre);
   }
 
+  /**
+   * Comprueba el criterio provisional de DNI acordado por el equipo.
+   * @param {unknown} dni Texto recibido.
+   * @returns {boolean} Indica si el dato es válido.
+   */
+  validarDni(dni) {
+    return false;
+  }
+
   #validarNombres(participantes) {
     for (const [indice, participante] of participantes.entries()) {
       if (!this.validarNombre(participante.nombre)) {

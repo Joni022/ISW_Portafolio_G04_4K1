@@ -93,6 +93,14 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe validar el DNI cuando su valor es un entero entre 1000000 y 99999999', () => {
+    expect(servicio.validarDni('7500000')).toBe(true);
+    expect(servicio.validarDni('99999999')).toBe(true);
+    expect(servicio.validarDni('999999')).toBe(false);
+    expect(servicio.validarDni('100000000')).toBe(false);
+    expect(servicio.validarDni('abc')).toBe(false);
+    expect(servicio.validarDni('7500000.5')).toBe(false);
+  });
   it('debe rechazar la inscripción cuando un participante ya tiene otra actividad simultánea', () => {
     // Preparación: Ana ya tiene Safari y aparece segunda en el nuevo grupo.
     const primera = solicitudValida([ANA]);
