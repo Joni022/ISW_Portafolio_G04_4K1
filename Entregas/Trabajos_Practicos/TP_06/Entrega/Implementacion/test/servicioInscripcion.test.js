@@ -296,6 +296,14 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe aceptar la inscripción cuando Safari o Jardinería no indican talle', () => {
+    const safari = solicitudValida([ANA]);
+    const jardineria = solicitudValida([JUAN], 'jardineria');
+
+    expect(() => servicio.inscribir(safari)).not.toThrow();
+    expect(() => servicio.inscribir(jardineria)).not.toThrow();
+    expect(emisorCorreo.mensajes()).toHaveLength(2);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {
