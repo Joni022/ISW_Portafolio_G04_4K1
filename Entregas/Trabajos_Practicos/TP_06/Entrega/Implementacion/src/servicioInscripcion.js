@@ -82,7 +82,8 @@ export class ServicioInscripcion {
   }
 
   #validarTerminos(solicitud) {
-    if (solicitud.terminos?.aceptados !== true) {
+    if (solicitud.terminos?.aceptados !== true
+        || solicitud.terminos.actividadId !== solicitud.actividad) {
       const error = new Error('Debés aceptar los términos de la actividad');
       error.name = 'ErrorValidacion';
       error.campo = 'terminos';

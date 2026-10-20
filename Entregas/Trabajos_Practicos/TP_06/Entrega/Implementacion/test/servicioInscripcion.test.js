@@ -264,6 +264,14 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe rechazar la inscripción cuando los términos aceptados son de otra actividad', () => {
+    const solicitud = solicitudValida([ANA]);
+    solicitud.terminos.actividadId = 'jardineria';
+
+    expect(() => servicio.inscribir(solicitud)).toThrow('Debés aceptar los términos');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {
