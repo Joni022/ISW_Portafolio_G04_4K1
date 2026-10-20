@@ -272,6 +272,14 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe aceptar Safari cuando se aceptan sus términos y condiciones', () => {
+    const solicitud = solicitudValida([ANA]);
+
+    const resultado = servicio.inscribir(solicitud);
+
+    expect(repositorio.obtenerInscripcion(resultado.idInscripcion)).toEqual(solicitud);
+    expect(emisorCorreo.mensajes()).toHaveLength(1);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {
