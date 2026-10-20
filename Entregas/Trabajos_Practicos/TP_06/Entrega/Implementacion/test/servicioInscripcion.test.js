@@ -363,6 +363,18 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.cuposDisponibles('safari', primera.inicioTurno)).toBe(1);
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
+  it('debe descontar exactamente los participantes cuando se registra el grupo', () => {
+    const solicitud = solicitudValida([ANA, JUAN]);
+    const disponibles = repositorio.cuposDisponibles('safari', solicitud.inicioTurno);
+
+    const resultado = servicio.inscribir(solicitud);
+
+    expect(disponibles).toBe(8);
+    expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(6);
+    expect(repositorio.obtenerInscripcion(resultado.idInscripcion).participantes).toEqual([ANA, JUAN]);
+    expect(repositorio.cuposDisponibles('jardineria', solicitud.inicioTurno)).toBe(12);
+    expect(repositorio.cuposDisponibles('safari', '2026-10-14T15:00:00-03:00')).toBe(8);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {
