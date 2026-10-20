@@ -1,4 +1,7 @@
 const CARACTERES_INVALIDOS_NOMBRE = /[^\p{L} ]/u;
+const DNI_MINIMO = 1000000;
+const DNI_MAXIMO = 99999999;
+const CARACTERES_NO_NUMERICOS_DNI = /[^0-9]/u;
 
 /** Coordina el caso de uso de inscripción. */
 export class ServicioInscripcion {
@@ -42,12 +45,12 @@ export class ServicioInscripcion {
    * @returns {boolean} Indica si el dato es válido.
    */
   validarDni(dni) {
-    if (typeof dni !== 'string' || dni.length === 0 || /[^0-9]/u.test(dni)) {
+    if (typeof dni !== 'string' || dni.length === 0 || CARACTERES_NO_NUMERICOS_DNI.test(dni)) {
       return false;
     }
 
     const valor = Number(dni);
-    return Number.isInteger(valor) && valor >= 1000000 && valor <= 99999999;
+    return Number.isInteger(valor) && valor >= DNI_MINIMO && valor <= DNI_MAXIMO;
   }
 
   #validarNombres(participantes) {
