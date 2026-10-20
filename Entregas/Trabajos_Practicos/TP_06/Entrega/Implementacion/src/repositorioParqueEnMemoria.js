@@ -18,14 +18,16 @@ export class RepositorioParqueEnMemoria {
   }
 
   /**
-   * Consulta si el DNI figura en una inscripción registrada.
+   * Consulta inscripciones de la persona con el mismo inicio de turno.
    * @param {string} dni Identidad declarada del participante.
-   * @returns {boolean} Indica si se encontró al participante.
+   * @param {string} inicioTurno Inicio ISO con fecha y zona horaria.
+   * @returns {boolean} Indica si la persona ya ocupa ese horario.
    */
-  tieneInscripcion(dni) {
+  existeInscripcionEnHorario(dni, inicioTurno) {
     for (const inscripcion of this.#inscripciones.values()) {
       for (const participante of inscripcion.participantes) {
-        if (participante.dni === dni) {
+        if (participante.dni === dni
+          && Date.parse(inscripcion.inicioTurno) === Date.parse(inicioTurno)) {
           return true;
         }
       }

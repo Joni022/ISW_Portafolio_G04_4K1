@@ -50,7 +50,11 @@ export class ServicioInscripcion {
 
   #validarDisponibilidad(solicitud) {
     for (const [indice, participante] of solicitud.participantes.entries()) {
-      if (this.repositorio.tieneInscripcion(participante.dni)) {
+      const tieneConflicto = this.repositorio.existeInscripcionEnHorario(
+        participante.dni,
+        solicitud.inicioTurno,
+      );
+      if (tieneConflicto) {
         const error = new Error(
           `El participante ${indice + 1} ya tiene una inscripción en ese horario`,
         );
