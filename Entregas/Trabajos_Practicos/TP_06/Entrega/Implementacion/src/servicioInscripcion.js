@@ -1,4 +1,6 @@
 const CARACTERES_INVALIDOS_NOMBRE = /[^\p{L} ]/u;
+const EDAD_MINIMA = 0;
+const EDAD_MAXIMA = 120;
 const DNI_MINIMO = 1000000;
 const DNI_MAXIMO = 99999999;
 const CARACTERES_NO_NUMERICOS_DNI = /[^0-9]/u;
@@ -51,6 +53,11 @@ export class ServicioInscripcion {
 
     const valor = Number(dni);
     return Number.isInteger(valor) && valor >= DNI_MINIMO && valor <= DNI_MAXIMO;
+  }
+
+  /** @param {unknown} edad @returns {boolean} Edad entera admitida por el equipo. */
+  validarEdad(edad) {
+    return Number.isInteger(edad) && edad >= EDAD_MINIMA && edad <= EDAD_MAXIMA;
   }
 
   #validarNombres(participantes) {

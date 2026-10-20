@@ -142,6 +142,20 @@ describe('Inscripción a actividad', () => {
     expect(() => servicio.inscribir(otraFecha)).not.toThrow();
     expect(emisorCorreo.mensajes()).toHaveLength(4);
   });
+  it('debe validar la edad cuando se ingresan enteros de 0 a 120 y datos inválidos', () => {
+    expect(servicio.validarEdad(0)).toBe(true);
+    expect(servicio.validarEdad(120)).toBe(true);
+    expect(servicio.validarEdad(-1)).toBe(false);
+    expect(servicio.validarEdad(121)).toBe(false);
+    expect(servicio.validarEdad(10.5)).toBe(false);
+    expect(servicio.validarEdad('abc')).toBe(false);
+    expect(servicio.validarEdad('12')).toBe(false);
+    expect(servicio.validarEdad('')).toBe(false);
+    expect(servicio.validarEdad(null)).toBe(false);
+    expect(servicio.validarEdad(undefined)).toBe(false);
+    expect(servicio.validarEdad(NaN)).toBe(false);
+    expect(servicio.validarEdad(Infinity)).toBe(false);
+  });
 });
 
 function solicitudValida(participantes) {
