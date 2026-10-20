@@ -18,17 +18,7 @@ export class ServicioInscripcion {
    */
   inscribir(solicitud) {
     this.#validarNombres(solicitud.participantes);
-    for (const [indice, participante] of solicitud.participantes.entries()) {
-      if (this.repositorio.tieneInscripcion(participante.dni)) {
-        const error = new Error(
-          `El participante ${indice + 1} ya tiene una inscripción en ese horario`,
-        );
-        error.name = 'ErrorValidacion';
-        error.campo = 'inicioTurno';
-        error.participante = indice + 1;
-        throw error;
-      }
-    }
+    this.#validarDisponibilidad(solicitud);
 
     const idInscripcion = this.repositorio.guardarInscripcion(solicitud);
     this.emisorCorreo.enviar(this.#confirmacionDe(solicitud));
@@ -52,6 +42,20 @@ export class ServicioInscripcion {
         const error = new Error(`El nombre del participante ${indice + 1} no es válido`);
         error.name = 'ErrorValidacion';
         error.campo = 'nombre';
+        error.participante = indice + 1;
+        throw error;
+      }
+    }
+  }
+
+  #validarDisponibilidad(solicitud) {
+    for (const [indice, participante] of solicitud.participantes.entries()) {
+      if (this.repositorio.tieneInscripcion(participante.dni)) {
+        const error = new Error(
+          `El participante ${indice + 1} ya tiene una inscripción en ese horario`,
+        );
+        error.name = 'ErrorValidacion';
+        error.campo = 'inicioTurno';
         error.participante = indice + 1;
         throw error;
       }
