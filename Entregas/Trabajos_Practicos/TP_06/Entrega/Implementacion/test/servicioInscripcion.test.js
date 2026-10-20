@@ -45,6 +45,12 @@ describe('Inscripción a actividad', () => {
     // Comprobación.
     expect(resultado.idInscripcion).not.toBeNull();
     expect(repositorio.obtenerInscripcion(resultado.idInscripcion)).toEqual(solicitud);
+    expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(6);
+    const mensajes = emisorCorreo.mensajes();
+    expect(mensajes).toHaveLength(1);
+    expect(mensajes[0].destinatario).toBe(solicitud.contacto);
+    expect(mensajes[0].participantes).toEqual(solicitud.participantes);
+    expect(mensajes[0].adjuntos).toHaveLength(1);
   });
 
   it('debe enviar un correo al contacto cuando se registra la inscripción', async () => {
