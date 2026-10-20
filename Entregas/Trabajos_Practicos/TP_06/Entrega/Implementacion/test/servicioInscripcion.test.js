@@ -195,6 +195,22 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe aplicar la edad mínima cuando se solicita Palestra', () => {
+    const menor = {
+      ...solicitudValida([ANA, { ...JUAN, edad: 11, talle: 'M' }]),
+      actividad: 'palestra',
+    };
+    const limite = {
+      ...solicitudValida([{ ...JUAN, edad: 12, talle: 'M' }]),
+      actividad: 'palestra',
+    };
+    menor.participantes[0] = { ...ANA, talle: 'S' };
+
+    expect(() => servicio.inscribir(menor)).toThrow('La edad mínima para palestra es 12');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+    expect(() => servicio.inscribir(limite)).not.toThrow();
+  });
 });
 
 function solicitudValida(participantes) {

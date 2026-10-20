@@ -1,7 +1,7 @@
 const ACTIVIDADES = new Map([
   ['safari', { edadMinima: 0, requiereTalle: false }],
   ['jardineria', { edadMinima: 0, requiereTalle: false }],
-  ['palestra', { edadMinima: 0, requiereTalle: true }],
+  ['palestra', { edadMinima: 12, requiereTalle: true }],
   ['tirolesa', { edadMinima: 0, requiereTalle: true }],
 ]);
 const CARACTERES_INVALIDOS_NOMBRE = /[^\p{L} ]/u;
@@ -33,6 +33,7 @@ export class ServicioInscripcion {
     this.#validarNombres(solicitud.participantes);
     this.#validarEdades(solicitud.participantes);
     this.#validarDocumentos(solicitud.participantes);
+    this.#validarEdadActividad(solicitud);
     this.#validarDisponibilidad(solicitud);
 
     const idInscripcion = this.repositorio.guardarInscripcion(solicitud);
@@ -129,6 +130,19 @@ export class ServicioInscripcion {
         const error = new Error(`El DNI del participante ${indice + 1} no es válido`);
         error.name = 'ErrorValidacion';
         error.campo = 'dni';
+        error.participante = indice + 1;
+        throw error;
+      }
+    }
+  }
+
+  #validarEdadActividad(solicitud) {
+    const { edadMinima } = ACTIVIDADES.get(solicitud.actividad);
+    for (const [indice, participante] of solicitud.participantes.entries()) {
+      if (participante.edad < edadMinima) {
+        const error = new Error(`La edad mínima para ${solicitud.actividad} es ${edadMinima}`);
+        error.name = 'ErrorValidacion';
+        error.campo = 'edad';
         error.participante = indice + 1;
         throw error;
       }
