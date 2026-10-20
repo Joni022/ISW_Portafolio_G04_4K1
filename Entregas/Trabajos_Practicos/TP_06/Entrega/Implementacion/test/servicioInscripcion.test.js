@@ -304,6 +304,23 @@ describe('Inscripción a actividad', () => {
     expect(() => servicio.inscribir(jardineria)).not.toThrow();
     expect(emisorCorreo.mensajes()).toHaveLength(2);
   });
+  it('debe aceptar la inscripción cuando Palestra o Tirolesa reciben talles válidos', () => {
+    const participantes = [
+      { ...ANA, talle: 'XS' },
+      { ...JUAN, talle: 'S' },
+      { nombre: 'Pedro Sosa', dni: '31222333', edad: 22, talle: 'M' },
+      { nombre: 'Lucía Ríos', dni: '45333444', edad: 19, talle: 'L' },
+      { nombre: 'Marta Díaz', dni: '27555666', edad: 61, talle: 'XL' },
+      { nombre: 'José Vera', dni: '31555666', edad: 26, talle: 'XXL' },
+    ];
+    const palestra = solicitudValida(participantes, 'palestra');
+    const tirolesa = solicitudValida(participantes, 'tirolesa');
+    tirolesa.inicioTurno = '2026-10-14T15:00:00-03:00';
+
+    expect(() => servicio.inscribir(palestra)).not.toThrow();
+    expect(() => servicio.inscribir(tirolesa)).not.toThrow();
+    expect(emisorCorreo.mensajes()).toHaveLength(2);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {
