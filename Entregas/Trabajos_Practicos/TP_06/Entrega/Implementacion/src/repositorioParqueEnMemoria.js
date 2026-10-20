@@ -20,6 +20,22 @@ export class RepositorioParqueEnMemoria {
     return turno === undefined ? null : structuredClone(turno);
   }
 
+  /** @param {string} actividad @param {string} inicioTurno @returns {number} Lugares libres. */
+  cuposDisponibles(actividad, inicioTurno) {
+    const turno = this.obtenerTurno(actividad, inicioTurno);
+    if (turno === null) {
+      return 0;
+    }
+    let ocupados = 0;
+    for (const inscripcion of this.#inscripciones.values()) {
+      if (inscripcion.actividad === actividad
+          && Date.parse(inscripcion.inicioTurno) === Date.parse(inicioTurno)) {
+        ocupados += inscripcion.participantes.length;
+      }
+    }
+    return turno.capacidad - ocupados;
+  }
+
   #claveTurno(actividad, inicioTurno) {
     return `${actividad}|${Date.parse(inicioTurno)}`;
   }

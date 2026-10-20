@@ -347,6 +347,22 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe rechazar el grupo completo cuando los cupos disponibles son insuficientes', () => {
+    const primera = solicitudValida([ANA]);
+    repositorio.agregarTurno({
+      actividad: 'safari', inicioTurno: primera.inicioTurno, capacidad: 2, habilitado: true,
+    });
+    const registro = servicio.inscribir(primera);
+    const grupo = solicitudValida([
+      JUAN, { nombre: 'Pedro Sosa', dni: '31222333', edad: 22 },
+    ]);
+
+    expect(() => servicio.inscribir(grupo)).toThrow('No hay cupos suficientes');
+    expect(repositorio.obtenerInscripcion(registro.idInscripcion)).toEqual(primera);
+    expect(repositorio.obtenerInscripcion('2')).toBeNull();
+    expect(repositorio.cuposDisponibles('safari', primera.inicioTurno)).toBe(1);
+    expect(emisorCorreo.mensajes()).toHaveLength(1);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {

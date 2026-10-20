@@ -39,6 +39,7 @@ export class ServicioInscripcion {
     this.#validarEdadActividad(solicitud);
     this.#validarVestimenta(solicitud);
     this.#validarDisponibilidad(solicitud);
+    this.#validarCupos(solicitud);
 
     const idInscripcion = this.repositorio.guardarInscripcion(solicitud);
     this.emisorCorreo.enviar(this.#confirmacionDe(solicitud));
@@ -203,6 +204,19 @@ export class ServicioInscripcion {
         error.participante = indice + 1;
         throw error;
       }
+    }
+  }
+
+  #validarCupos(solicitud) {
+    const disponibles = this.repositorio.cuposDisponibles(
+      solicitud.actividad,
+      solicitud.inicioTurno,
+    );
+    if (solicitud.participantes.length > disponibles) {
+      const error = new Error('No hay cupos suficientes para el grupo completo');
+      error.name = 'ErrorValidacion';
+      error.campo = 'participantes';
+      throw error;
     }
   }
 
