@@ -1,4 +1,6 @@
 // Zona técnica adoptada para esta entrega; no depende de la zona del dispositivo.
+const HORA_PRIMER_TURNO = 9;
+const HORA_ULTIMO_TURNO = 17;
 const ZONA_PARQUE = 'America/Argentina/Buenos_Aires';
 const FECHA_PARQUE = new Intl.DateTimeFormat('en-GB', {
   timeZone: ZONA_PARQUE, weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -106,6 +108,13 @@ export class ServicioInscripcion {
     const fecha = Object.fromEntries(
       FECHA_PARQUE.formatToParts(new Date(inicioTurno)).map((parte) => [parte.type, parte.value]),
     );
+    if (Number(fecha.hour) < HORA_PRIMER_TURNO || Number(fecha.hour) > HORA_ULTIMO_TURNO
+        || fecha.minute !== '00' || fecha.second !== '00') {
+      const error = new Error('El turno debe iniciar en una hora entera entre las 09 y las 17');
+      error.name = 'ErrorValidacion';
+      error.campo = 'inicioTurno';
+      throw error;
+    }
     const esFeriado = (fecha.month === '12' && fecha.day === '25')
       || (fecha.month === '01' && fecha.day === '01');
     if (fecha.weekday === 'Mon' || esFeriado) {

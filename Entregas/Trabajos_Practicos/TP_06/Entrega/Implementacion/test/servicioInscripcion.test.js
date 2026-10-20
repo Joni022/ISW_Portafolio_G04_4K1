@@ -411,6 +411,29 @@ describe('Inscripción a actividad', () => {
     expect(emisorCorreo.mensajes()).toHaveLength(0);
     expect(repositorio.cuposDisponibles('safari', lunes.inicioTurno)).toBe(8);
   });
+  it('debe rechazar el turno cuando inicia fuera de las horas enteras de 09 a 17', () => {
+    const temprano = solicitudValida([ANA]);
+    temprano.inicioTurno = '2026-10-14T08:00:00-03:00';
+    const tarde = solicitudValida([ANA]);
+    tarde.inicioTurno = '2026-10-14T18:00:00-03:00';
+    const intermedio = solicitudValida([ANA]);
+    intermedio.inicioTurno = '2026-10-14T14:30:00-03:00';
+    repositorio.agregarTurno({
+      actividad: 'safari', inicioTurno: temprano.inicioTurno, capacidad: 8, habilitado: true,
+    });
+    repositorio.agregarTurno({
+      actividad: 'safari', inicioTurno: tarde.inicioTurno, capacidad: 8, habilitado: true,
+    });
+    repositorio.agregarTurno({
+      actividad: 'safari', inicioTurno: intermedio.inicioTurno, capacidad: 8, habilitado: true,
+    });
+
+    expect(() => servicio.inscribir(temprano)).toThrow('entre las 09 y las 17');
+    expect(() => servicio.inscribir(tarde)).toThrow('entre las 09 y las 17');
+    expect(() => servicio.inscribir(intermedio)).toThrow('hora entera');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {
