@@ -93,6 +93,23 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe rechazar la inscripción cuando un participante ya tiene otra actividad simultánea', () => {
+    // Preparación: Ana ya tiene Safari y aparece segunda en el nuevo grupo.
+    const primera = solicitudValida([ANA]);
+    const registro = servicio.inscribir(primera);
+    const segunda = {
+      ...solicitudValida([JUAN, ANA]),
+      actividad: 'jardineria',
+    };
+
+    // Ejecución y comprobación: rechazo del grupo completo, sin efectos nuevos.
+    expect(() => servicio.inscribir(segunda)).toThrow(
+      'El participante 2 ya tiene una inscripción en ese horario',
+    );
+    expect(repositorio.obtenerInscripcion(registro.idInscripcion)).toEqual(primera);
+    expect(repositorio.obtenerInscripcion('2')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(1);
+  });
 });
 
 function solicitudValida(participantes) {
