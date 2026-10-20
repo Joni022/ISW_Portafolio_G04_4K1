@@ -167,6 +167,17 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe rechazar la inscripción cuando un participante tiene un DNI inválido', () => {
+    // Preparación: cada solicitud altera solamente el DNI.
+    const individual = solicitudValida([{ ...ANA, dni: '999999' }]);
+    const grupal = solicitudValida([ANA, { ...JUAN, dni: '1234abc' }]);
+
+    // Ejecución y comprobación.
+    expect(() => servicio.inscribir(individual)).toThrow('El DNI del participante 1');
+    expect(() => servicio.inscribir(grupal)).toThrow('El DNI del participante 2');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
 });
 
 function solicitudValida(participantes) {

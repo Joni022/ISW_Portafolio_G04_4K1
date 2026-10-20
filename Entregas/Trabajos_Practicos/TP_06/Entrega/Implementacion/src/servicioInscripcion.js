@@ -24,6 +24,7 @@ export class ServicioInscripcion {
   inscribir(solicitud) {
     this.#validarNombres(solicitud.participantes);
     this.#validarEdades(solicitud.participantes);
+    this.#validarDocumentos(solicitud.participantes);
     this.#validarDisponibilidad(solicitud);
 
     const idInscripcion = this.repositorio.guardarInscripcion(solicitud);
@@ -79,6 +80,18 @@ export class ServicioInscripcion {
         const error = new Error(`La edad del participante ${indice + 1} no es válida`);
         error.name = 'ErrorValidacion';
         error.campo = 'edad';
+        error.participante = indice + 1;
+        throw error;
+      }
+    }
+  }
+
+  #validarDocumentos(participantes) {
+    for (const [indice, participante] of participantes.entries()) {
+      if (!this.validarDni(participante.dni)) {
+        const error = new Error(`El DNI del participante ${indice + 1} no es válido`);
+        error.name = 'ErrorValidacion';
+        error.campo = 'dni';
         error.participante = indice + 1;
         throw error;
       }
