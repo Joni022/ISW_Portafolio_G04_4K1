@@ -156,6 +156,17 @@ describe('Inscripción a actividad', () => {
     expect(servicio.validarEdad(NaN)).toBe(false);
     expect(servicio.validarEdad(Infinity)).toBe(false);
   });
+  it('debe rechazar la inscripción cuando un participante tiene una edad inválida', () => {
+    // Preparación: el error puede estar en el segundo participante.
+    const individual = solicitudValida([{ ...ANA, edad: -1 }]);
+    const grupal = solicitudValida([ANA, { ...JUAN, edad: 'abc' }]);
+
+    // Ejecución y comprobación: no se registra parcialmente ni se confirma.
+    expect(() => servicio.inscribir(individual)).toThrow('La edad del participante 1');
+    expect(() => servicio.inscribir(grupal)).toThrow('La edad del participante 2');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
 });
 
 function solicitudValida(participantes) {
