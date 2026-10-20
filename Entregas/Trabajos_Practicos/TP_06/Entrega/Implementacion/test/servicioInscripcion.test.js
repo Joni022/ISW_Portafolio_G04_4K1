@@ -10,6 +10,7 @@ describe('Inscripción a actividad', () => {
   let repositorio;
   let servicio;
   let emisorCorreo;
+  let ahora;
 
   beforeEach(() => {
     repositorio = new RepositorioParqueEnMemoria();
@@ -26,7 +27,10 @@ describe('Inscripción a actividad', () => {
       }
     }
     emisorCorreo = new EmisorCorreoSimulado();
-    servicio = new ServicioInscripcion(repositorio, emisorCorreo);
+    ahora = new Date('2026-10-14T10:00:00-03:00');
+    servicio = new ServicioInscripcion(repositorio, emisorCorreo, {
+      reloj: { ahora: () => new Date(ahora) },
+    });
   });
 
   it('debe registrar los participantes cuando la solicitud es válida', () => {
@@ -155,6 +159,7 @@ describe('Inscripción a actividad', () => {
     // Ejecución y comprobación: ninguna alternativa tiene simultaneidad.
     expect(() => servicio.inscribir(otraPersona)).not.toThrow();
     expect(() => servicio.inscribir(otroHorario)).not.toThrow();
+    ahora = new Date('2026-10-14T14:00:00-03:00');
     expect(() => servicio.inscribir(otraFecha)).not.toThrow();
     expect(emisorCorreo.mensajes()).toHaveLength(4);
   });
@@ -433,6 +438,15 @@ describe('Inscripción a actividad', () => {
     expect(() => servicio.inscribir(intermedio)).toThrow('hora entera');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
+  it('debe aceptar la inscripción cuando faltan exactamente quince minutos para el turno', () => {
+    ahora = new Date('2026-10-14T13:45:00-03:00');
+    const solicitud = solicitudValida([ANA]);
+
+    const resultado = servicio.inscribir(solicitud);
+
+    expect(repositorio.obtenerInscripcion(resultado.idInscripcion)).toEqual(solicitud);
+    expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
 });
 

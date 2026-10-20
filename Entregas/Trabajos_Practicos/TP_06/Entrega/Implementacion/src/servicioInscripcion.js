@@ -1,4 +1,8 @@
 // Zona técnica adoptada para esta entrega; no depende de la zona del dispositivo.
+const MINUTOS_CIERRE_INSCRIPCION = 15;
+const HORAS_APERTURA_INSCRIPCION = 24;
+const MILISEGUNDOS_POR_MINUTO = 60000;
+const MINUTOS_POR_HORA = 60;
 const HORA_PRIMER_TURNO = 9;
 const HORA_ULTIMO_TURNO = 17;
 const ZONA_PARQUE = 'America/Argentina/Buenos_Aires';
@@ -26,9 +30,10 @@ export class ServicioInscripcion {
    * @param {object} repositorio Almacenamiento de inscripciones.
    * @param {object} emisorCorreo Bandeja de confirmaciones.
    */
-  constructor(repositorio, emisorCorreo) {
+  constructor(repositorio, emisorCorreo, { reloj = { ahora: () => new Date() } } = {}) {
     this.repositorio = repositorio;
     this.emisorCorreo = emisorCorreo;
+    this.reloj = reloj;
   }
 
   /**
@@ -41,6 +46,7 @@ export class ServicioInscripcion {
     this.#validarActividad(solicitud.actividad);
     this.#validarTurno(solicitud);
     this.#validarCalendario(solicitud.inicioTurno);
+    this.#validarVentana(solicitud.inicioTurno);
     this.#validarTerminos(solicitud);
     this.#validarNombres(solicitud.participantes);
     this.#validarEdades(solicitud.participantes);
@@ -119,6 +125,18 @@ export class ServicioInscripcion {
       || (fecha.month === '01' && fecha.day === '01');
     if (fecha.weekday === 'Mon' || esFeriado) {
       const error = new Error('El parque está cerrado en la fecha del turno');
+      error.name = 'ErrorValidacion';
+      error.campo = 'inicioTurno';
+      throw error;
+    }
+  }
+
+  #validarVentana(inicioTurno) {
+    const distancia = Date.parse(inicioTurno) - this.reloj.ahora().getTime();
+    const cierre = MINUTOS_CIERRE_INSCRIPCION * MILISEGUNDOS_POR_MINUTO;
+    const apertura = HORAS_APERTURA_INSCRIPCION * MINUTOS_POR_HORA * MILISEGUNDOS_POR_MINUTO;
+    if (!Number.isFinite(distancia) || distancia < cierre || distancia > apertura) {
+      const error = new Error('La inscripción está fuera de la ventana de 24 horas a 15 minutos');
       error.name = 'ErrorValidacion';
       error.campo = 'inicioTurno';
       throw error;
