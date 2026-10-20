@@ -24,10 +24,13 @@ export class RepositorioParqueEnMemoria {
    * @returns {boolean} Indica si la persona ya ocupa ese horario.
    */
   existeInscripcionEnHorario(dni, inicioTurno) {
+    const inicioSolicitado = Date.parse(inicioTurno);
     for (const inscripcion of this.#inscripciones.values()) {
+      if (Date.parse(inscripcion.inicioTurno) !== inicioSolicitado) {
+        continue;
+      }
       for (const participante of inscripcion.participantes) {
-        if (participante.dni === dni
-          && Date.parse(inscripcion.inicioTurno) === Date.parse(inicioTurno)) {
+        if (participante.dni === dni) {
           return true;
         }
       }
