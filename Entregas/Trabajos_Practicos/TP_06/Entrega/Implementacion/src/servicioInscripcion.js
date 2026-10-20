@@ -1,3 +1,9 @@
+// Zona técnica adoptada para esta entrega; no depende de la zona del dispositivo.
+const ZONA_PARQUE = 'America/Argentina/Buenos_Aires';
+const FECHA_PARQUE = new Intl.DateTimeFormat('en-GB', {
+  timeZone: ZONA_PARQUE, weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+});
 const ACTIVIDADES = new Map([
   ['safari', { edadMinima: 0, requiereTalle: false }],
   ['jardineria', { edadMinima: 0, requiereTalle: false }],
@@ -32,6 +38,7 @@ export class ServicioInscripcion {
     this.#validarParticipantes(solicitud);
     this.#validarActividad(solicitud.actividad);
     this.#validarTurno(solicitud);
+    this.#validarCalendario(solicitud.inicioTurno);
     this.#validarTerminos(solicitud);
     this.#validarNombres(solicitud.participantes);
     this.#validarEdades(solicitud.participantes);
@@ -89,6 +96,20 @@ export class ServicioInscripcion {
     const turno = this.repositorio.obtenerTurno(solicitud.actividad, solicitud.inicioTurno);
     if (turno === null || turno.habilitado !== true) {
       const error = new Error('El turno no existe o no está habilitado');
+      error.name = 'ErrorValidacion';
+      error.campo = 'inicioTurno';
+      throw error;
+    }
+  }
+
+  #validarCalendario(inicioTurno) {
+    const fecha = Object.fromEntries(
+      FECHA_PARQUE.formatToParts(new Date(inicioTurno)).map((parte) => [parte.type, parte.value]),
+    );
+    const esFeriado = (fecha.month === '12' && fecha.day === '25')
+      || (fecha.month === '01' && fecha.day === '01');
+    if (fecha.weekday === 'Mon' || esFeriado) {
+      const error = new Error('El parque está cerrado en la fecha del turno');
       error.name = 'ErrorValidacion';
       error.campo = 'inicioTurno';
       throw error;

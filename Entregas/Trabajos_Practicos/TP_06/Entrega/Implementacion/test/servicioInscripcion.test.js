@@ -387,6 +387,30 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(0);
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
+  it('debe rechazar la inscripción cuando el parque cierra por lunes, Navidad o Año Nuevo', () => {
+    const lunes = solicitudValida([ANA]);
+    lunes.inicioTurno = '2026-10-19T14:00:00-03:00';
+    const navidad = solicitudValida([ANA]);
+    navidad.inicioTurno = '2026-12-25T14:00:00-03:00';
+    const anioNuevo = solicitudValida([ANA]);
+    anioNuevo.inicioTurno = '2027-01-01T14:00:00-03:00';
+    repositorio.agregarTurno({
+      actividad: 'safari', inicioTurno: lunes.inicioTurno, capacidad: 8, habilitado: true,
+    });
+    repositorio.agregarTurno({
+      actividad: 'safari', inicioTurno: navidad.inicioTurno, capacidad: 8, habilitado: true,
+    });
+    repositorio.agregarTurno({
+      actividad: 'safari', inicioTurno: anioNuevo.inicioTurno, capacidad: 8, habilitado: true,
+    });
+
+    expect(() => servicio.inscribir(lunes)).toThrow('El parque está cerrado');
+    expect(() => servicio.inscribir(navidad)).toThrow('El parque está cerrado');
+    expect(() => servicio.inscribir(anioNuevo)).toThrow('El parque está cerrado');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+    expect(repositorio.cuposDisponibles('safari', lunes.inicioTurno)).toBe(8);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {
