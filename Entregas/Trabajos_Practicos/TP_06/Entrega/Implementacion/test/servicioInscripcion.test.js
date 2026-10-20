@@ -289,6 +289,13 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe rechazar la inscripción cuando el talle indicado no pertenece a XS–XXL', () => {
+    const solicitud = solicitudValida([{ ...ANA, talle: 'XXXL' }], 'palestra');
+
+    expect(() => servicio.inscribir(solicitud)).toThrow('talle válido');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {
