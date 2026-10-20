@@ -477,6 +477,19 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(8);
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe enviar cada confirmación al contacto cuando las solicitudes informan correos distintos', () => {
+    const primera = solicitudValida([ANA]);
+    primera.contacto = 'responsable.uno@ejemplo.com';
+    const segunda = solicitudValida([JUAN]);
+    segunda.contacto = 'responsable.dos@ejemplo.com';
+
+    servicio.inscribir(primera);
+    servicio.inscribir(segunda);
+
+    expect(emisorCorreo.mensajes()).toHaveLength(2);
+    expect(emisorCorreo.mensajes()[0].destinatario).toBe(primera.contacto);
+    expect(emisorCorreo.mensajes()[1].destinatario).toBe(segunda.contacto);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {

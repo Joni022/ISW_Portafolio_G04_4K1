@@ -270,7 +270,7 @@ export class ServicioInscripcion {
 
   #confirmacionDe(solicitud) {
     return {
-      destinatario: 'ana@ejemplo.com',
+      destinatario: solicitud.contacto,
       actividad: solicitud.actividad,
       inicioTurno: solicitud.inicioTurno,
       participantes: solicitud.participantes,
