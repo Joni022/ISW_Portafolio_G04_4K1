@@ -178,6 +178,16 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe rechazar la inscripción cuando faltan participantes o su estructura es inválida', () => {
+    // Preparación y comprobación del límite público, sin conversiones implícitas.
+    expect(() => servicio.inscribir(solicitudValida([]))).toThrow('al menos un participante');
+    expect(() => servicio.inscribir(solicitudValida(null))).toThrow('al menos un participante');
+    expect(() => servicio.inscribir(solicitudValida([ANA, null]))).toThrow('participante 2');
+    expect(() => servicio.inscribir(null)).toThrow('al menos un participante');
+    expect(() => servicio.inscribir()).toThrow('al menos un participante');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
 });
 
 function solicitudValida(participantes) {

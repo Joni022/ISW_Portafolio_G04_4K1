@@ -22,6 +22,7 @@ export class ServicioInscripcion {
    * @throws {Error} ErrorValidacion con campo y número de participante.
    */
   inscribir(solicitud) {
+    this.#validarParticipantes(solicitud);
     this.#validarNombres(solicitud.participantes);
     this.#validarEdades(solicitud.participantes);
     this.#validarDocumentos(solicitud.participantes);
@@ -60,6 +61,26 @@ export class ServicioInscripcion {
   /** @param {unknown} edad @returns {boolean} Edad entera admitida por el equipo. */
   validarEdad(edad) {
     return Number.isInteger(edad) && edad >= EDAD_MINIMA && edad <= EDAD_MAXIMA;
+  }
+
+  #validarParticipantes(solicitud) {
+    if (solicitud === null || typeof solicitud !== 'object' || Array.isArray(solicitud)
+        || !Array.isArray(solicitud.participantes) || solicitud.participantes.length === 0) {
+      const error = new Error('La solicitud debe incluir al menos un participante');
+      error.name = 'ErrorValidacion';
+      error.campo = 'participantes';
+      throw error;
+    }
+    for (const [indice, participante] of solicitud.participantes.entries()) {
+      if (participante === null || typeof participante !== 'object'
+          || Array.isArray(participante)) {
+        const error = new Error(`Los datos del participante ${indice + 1} no son válidos`);
+        error.name = 'ErrorValidacion';
+        error.campo = 'participantes';
+        error.participante = indice + 1;
+        throw error;
+      }
+    }
   }
 
   #validarNombres(participantes) {
