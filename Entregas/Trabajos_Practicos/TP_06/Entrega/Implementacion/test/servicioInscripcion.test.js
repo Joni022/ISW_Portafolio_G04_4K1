@@ -280,6 +280,15 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion(resultado.idInscripcion)).toEqual(solicitud);
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
+  it('debe rechazar la inscripción cuando falta el talle en Palestra o Tirolesa', () => {
+    const palestra = solicitudValida([ANA], 'palestra');
+    const tirolesa = solicitudValida([{ ...ANA, talle: 'M' }, JUAN], 'tirolesa');
+
+    expect(() => servicio.inscribir(palestra)).toThrow('talle válido para el participante 1');
+    expect(() => servicio.inscribir(tirolesa)).toThrow('talle válido para el participante 2');
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
 });
 
 function solicitudValida(participantes, actividad = 'safari') {

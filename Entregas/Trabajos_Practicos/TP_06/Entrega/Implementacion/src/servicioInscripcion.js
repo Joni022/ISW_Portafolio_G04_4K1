@@ -5,6 +5,7 @@ const ACTIVIDADES = new Map([
   ['tirolesa', { edadMinima: 8, requiereTalle: true }],
 ]);
 const CARACTERES_INVALIDOS_NOMBRE = /[^\p{L} ]/u;
+const TALLES_ADMITIDOS = new Set(['XS', 'S', 'M', 'L', 'XL', 'XXL']);
 const EDAD_MINIMA = 0;
 const EDAD_MAXIMA = 120;
 const DNI_MINIMO = 1000000;
@@ -35,6 +36,7 @@ export class ServicioInscripcion {
     this.#validarEdades(solicitud.participantes);
     this.#validarDocumentos(solicitud.participantes);
     this.#validarEdadActividad(solicitud);
+    this.#validarVestimenta(solicitud);
     this.#validarDisponibilidad(solicitud);
 
     const idInscripcion = this.repositorio.guardarInscripcion(solicitud);
@@ -154,6 +156,21 @@ export class ServicioInscripcion {
         const error = new Error(`La edad mínima para ${solicitud.actividad} es ${edadMinima}`);
         error.name = 'ErrorValidacion';
         error.campo = 'edad';
+        error.participante = indice + 1;
+        throw error;
+      }
+    }
+  }
+
+  #validarVestimenta(solicitud) {
+    if (!ACTIVIDADES.get(solicitud.actividad).requiereTalle) {
+      return;
+    }
+    for (const [indice, participante] of solicitud.participantes.entries()) {
+      if (!TALLES_ADMITIDOS.has(participante.talle)) {
+        const error = new Error(`Indicá un talle válido para el participante ${indice + 1}`);
+        error.name = 'ErrorValidacion';
+        error.campo = 'talle';
         error.participante = indice + 1;
         throw error;
       }
