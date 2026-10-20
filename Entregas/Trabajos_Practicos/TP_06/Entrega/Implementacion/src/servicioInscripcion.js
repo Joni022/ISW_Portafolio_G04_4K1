@@ -42,7 +42,12 @@ export class ServicioInscripcion {
    * @returns {boolean} Indica si el dato es válido.
    */
   validarDni(dni) {
-    return false;
+    if (typeof dni !== 'string' || dni.length === 0 || /[^0-9]/u.test(dni)) {
+      return false;
+    }
+
+    const valor = Number(dni);
+    return Number.isInteger(valor) && valor >= 1000000 && valor <= 99999999;
   }
 
   #validarNombres(participantes) {
