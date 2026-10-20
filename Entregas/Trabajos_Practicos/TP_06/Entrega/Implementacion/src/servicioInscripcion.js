@@ -1,12 +1,12 @@
 import { generarQr } from './generarQr.js';
 
-// Zona técnica adoptada para esta entrega; no depende de la zona del dispositivo.
 const MINUTOS_CIERRE_INSCRIPCION = 15;
 const HORAS_APERTURA_INSCRIPCION = 24;
 const MILISEGUNDOS_POR_MINUTO = 60000;
 const MINUTOS_POR_HORA = 60;
 const HORA_PRIMER_TURNO = 9;
 const HORA_ULTIMO_TURNO = 17;
+// Zona técnica adoptada para esta entrega; no depende de la zona del dispositivo.
 const ZONA_PARQUE = 'America/Argentina/Buenos_Aires';
 const FECHA_PARQUE = new Intl.DateTimeFormat('en-GB', {
   timeZone: ZONA_PARQUE, weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -31,6 +31,9 @@ export class ServicioInscripcion {
   /**
    * @param {object} repositorio Almacenamiento de inscripciones.
    * @param {object} emisorCorreo Bandeja de confirmaciones.
+   * @param {object} [opciones] Reloj y generador de QR reemplazables.
+   * @param {{ahora: function(): Date}} [opciones.reloj] Fuente del instante actual.
+   * @param {function(string): Promise<Buffer>} [opciones.generadorQr] Codificador PNG.
    */
   constructor(repositorio, emisorCorreo, {
     reloj = { ahora: () => new Date() },

@@ -125,7 +125,7 @@ describe('Inscripción a actividad', () => {
     expect(servicio.validarDni('abc')).toBe(false);
     expect(servicio.validarDni('7500000.5')).toBe(false);
   });
-  it('debe rechazar la inscripción cuando un participante ya tiene otra actividad simultánea', async () => {
+  it('debe rechazar la inscripción cuando ya existe una actividad simultánea', async () => {
     // Preparación: Ana ya tiene Safari y aparece segunda en el nuevo grupo.
     const primera = solicitudValida([ANA]);
     const registro = await servicio.inscribir(primera);
@@ -207,11 +207,14 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe rechazar la inscripción cuando faltan participantes o su estructura es inválida', async () => {
+  it('debe rechazar la solicitud cuando sus participantes no son válidos', async () => {
     // Preparación y comprobación del límite público, sin conversiones implícitas.
-    await expect(servicio.inscribir(solicitudValida([]))).rejects.toThrow('al menos un participante');
-    await expect(servicio.inscribir(solicitudValida(null))).rejects.toThrow('al menos un participante');
-    await expect(servicio.inscribir(solicitudValida([ANA, null]))).rejects.toThrow('participante 2');
+    await expect(servicio.inscribir(solicitudValida([])))
+      .rejects.toThrow('al menos un participante');
+    await expect(servicio.inscribir(solicitudValida(null)))
+      .rejects.toThrow('al menos un participante');
+    await expect(servicio.inscribir(solicitudValida([ANA, null])))
+      .rejects.toThrow('participante 2');
     await expect(servicio.inscribir(null)).rejects.toThrow('al menos un participante');
     await expect(servicio.inscribir()).rejects.toThrow('al menos un participante');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
@@ -259,7 +262,7 @@ describe('Inscripción a actividad', () => {
     expect(emisorCorreo.mensajes()).toHaveLength(0);
     await expect(servicio.inscribir(limite)).resolves.toBeDefined();
   });
-  it('debe aceptar todas las edades válidas cuando la actividad es Safari o Jardinería', async () => {
+  it('debe aceptar edades válidas cuando se solicita Safari o Jardinería', async () => {
     const safari = solicitudValida([{ ...ANA, edad: 0 }, { ...JUAN, edad: 120 }]);
     const jardineria = {
       ...solicitudValida([{ ...ANA, edad: 0 }]),
@@ -289,7 +292,7 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe rechazar la inscripción cuando los términos aceptados son de otra actividad', async () => {
+  it('debe rechazar la solicitud cuando los términos son de otra actividad', async () => {
     const solicitud = solicitudValida([ANA]);
     solicitud.terminos.actividadId = 'jardineria';
 
@@ -309,8 +312,10 @@ describe('Inscripción a actividad', () => {
     const palestra = solicitudValida([ANA], 'palestra');
     const tirolesa = solicitudValida([{ ...ANA, talle: 'M' }, JUAN], 'tirolesa');
 
-    await expect(servicio.inscribir(palestra)).rejects.toThrow('talle válido para el participante 1');
-    await expect(servicio.inscribir(tirolesa)).rejects.toThrow('talle válido para el participante 2');
+    await expect(servicio.inscribir(palestra))
+      .rejects.toThrow('talle válido para el participante 1');
+    await expect(servicio.inscribir(tirolesa))
+      .rejects.toThrow('talle válido para el participante 2');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
@@ -384,7 +389,8 @@ describe('Inscripción a actividad', () => {
 
     expect(disponibles).toBe(8);
     expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(6);
-    expect(repositorio.obtenerInscripcion(resultado.idInscripcion).participantes).toEqual([ANA, JUAN]);
+    const inscripcion = repositorio.obtenerInscripcion(resultado.idInscripcion);
+    expect(inscripcion.participantes).toEqual([ANA, JUAN]);
     expect(repositorio.cuposDisponibles('jardineria', solicitud.inicioTurno)).toBe(12);
     expect(repositorio.cuposDisponibles('safari', '2026-10-14T15:00:00-03:00')).toBe(8);
   });
@@ -400,7 +406,7 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(0);
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
-  it('debe rechazar la inscripción cuando el parque cierra por lunes, Navidad o Año Nuevo', async () => {
+  it('debe rechazar la solicitud cuando el parque está cerrado', async () => {
     const lunes = solicitudValida([ANA]);
     lunes.inicioTurno = '2026-10-19T14:00:00-03:00';
     const navidad = solicitudValida([ANA]);
@@ -447,7 +453,7 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe aceptar la inscripción cuando faltan exactamente quince minutos para el turno', async () => {
+  it('debe aceptar la inscripción cuando faltan quince minutos exactos', async () => {
     ahora = new Date('2026-10-14T13:45:00-03:00');
     const solicitud = solicitudValida([ANA]);
 
@@ -456,7 +462,7 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion(resultado.idInscripcion)).toEqual(solicitud);
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
-  it('debe rechazar la inscripción cuando faltan menos de quince minutos para el turno', async () => {
+  it('debe rechazar la inscripción cuando faltan menos de quince minutos', async () => {
     ahora = new Date('2026-10-14T13:45:00.001-03:00');
     const solicitud = solicitudValida([ANA]);
 
@@ -465,7 +471,7 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(8);
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe aceptar la inscripción cuando faltan exactamente veinticuatro horas para el turno', async () => {
+  it('debe aceptar la inscripción cuando faltan veinticuatro horas exactas', async () => {
     ahora = new Date('2026-10-14T14:00:00-03:00');
     const solicitud = solicitudValida([ANA]);
     solicitud.inicioTurno = '2026-10-15T14:00:00-03:00';
@@ -475,7 +481,7 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion(resultado.idInscripcion)).toEqual(solicitud);
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
-  it('debe rechazar la inscripción cuando faltan más de veinticuatro horas para el turno', async () => {
+  it('debe rechazar la inscripción cuando faltan más de veinticuatro horas', async () => {
     ahora = new Date('2026-10-14T13:59:59.999-03:00');
     const solicitud = solicitudValida([ANA]);
     solicitud.inicioTurno = '2026-10-15T14:00:00-03:00';
@@ -485,7 +491,7 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(8);
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
-  it('debe enviar cada confirmación al contacto cuando las solicitudes informan correos distintos', async () => {
+  it('debe usar el contacto indicado cuando las solicitudes tienen correos distintos', async () => {
     const primera = solicitudValida([ANA]);
     primera.contacto = 'responsable.uno@ejemplo.com';
     const segunda = solicitudValida([JUAN]);
@@ -530,7 +536,7 @@ describe('Inscripción a actividad', () => {
     expect(mensajes[0].participantes).toEqual(individual.participantes);
     expect(mensajes[1].participantes).toEqual(grupal.participantes);
   });
-  it('debe conservar el cupo cuando dos grupos solicitan concurrentemente los últimos lugares', async () => {
+  it('debe conservar el cupo cuando dos grupos compiten por los últimos lugares', async () => {
     const primero = solicitudValida([ANA, JUAN]);
     const segundo = solicitudValida([
       { nombre: 'Pedro Sosa', dni: '31222333', edad: 22 },
@@ -555,7 +561,7 @@ describe('Inscripción a actividad', () => {
     expect(emisorCorreo.mensajes()).toHaveLength(1);
     expect(emisorCorreo.mensajes()[0].adjuntos).toHaveLength(1);
   });
-  it('debe rechazar el conflicto cuando la misma persona solicita dos actividades concurrentemente', async () => {
+  it('debe rechazar el conflicto cuando una persona envía solicitudes concurrentes', async () => {
     const safari = solicitudValida([ANA]);
     const jardineria = solicitudValida([ANA], 'jardineria');
 
