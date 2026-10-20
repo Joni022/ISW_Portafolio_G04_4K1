@@ -110,6 +110,30 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('2')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
+  it('debe aceptar la inscripción cuando cambia la persona, el horario o la fecha', () => {
+    // Preparación: Ana ya está inscripta a Safari el 14/10 a las 14:00.
+    servicio.inscribir(solicitudValida([ANA]));
+    const otraPersona = {
+      ...solicitudValida([JUAN]),
+      actividad: 'jardineria',
+    };
+    const otroHorario = {
+      ...solicitudValida([ANA]),
+      actividad: 'jardineria',
+      inicioTurno: '2026-10-14T15:00:00-03:00',
+    };
+    const otraFecha = {
+      ...solicitudValida([ANA]),
+      actividad: 'jardineria',
+      inicioTurno: '2026-10-15T14:00:00-03:00',
+    };
+
+    // Ejecución y comprobación: ninguna alternativa tiene simultaneidad.
+    expect(() => servicio.inscribir(otraPersona)).not.toThrow();
+    expect(() => servicio.inscribir(otroHorario)).not.toThrow();
+    expect(() => servicio.inscribir(otraFecha)).not.toThrow();
+    expect(emisorCorreo.mensajes()).toHaveLength(4);
+  });
 });
 
 function solicitudValida(participantes) {
