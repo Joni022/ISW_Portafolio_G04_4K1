@@ -67,8 +67,12 @@ createServer(async (request, response) => {
     }
     start = Number(match[1]);
     end = match[2] === '' ? end : Math.min(Number(match[2]), end);
-    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end)
-      || start > end || start >= info.size) {
+    if (
+      !Number.isSafeInteger(start) ||
+      !Number.isSafeInteger(end) ||
+      start > end ||
+      start >= info.size
+    ) {
       response.writeHead(416, { 'Content-Range': `bytes */${info.size}` }).end();
       return;
     }

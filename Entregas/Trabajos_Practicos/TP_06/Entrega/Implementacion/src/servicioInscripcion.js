@@ -1,23 +1,27 @@
 import { generarQr } from './generarQr.js';
+import { relojSistema } from './relojSistema.js';
+import { CONFIGURACION_PARQUE } from '../prototipo/configuracionParque.js';
 
-const MINUTOS_CIERRE_INSCRIPCION = 15;
-const HORAS_APERTURA_INSCRIPCION = 24;
+const MINUTOS_CIERRE_INSCRIPCION = CONFIGURACION_PARQUE.minutosCierreInscripcion;
+const HORAS_APERTURA_INSCRIPCION = CONFIGURACION_PARQUE.horasAperturaInscripcion;
 const MILISEGUNDOS_POR_MINUTO = 60000;
 const MINUTOS_POR_HORA = 60;
-const HORA_PRIMER_TURNO = 9;
-const HORA_ULTIMO_TURNO = 17;
+const HORA_PRIMER_TURNO = CONFIGURACION_PARQUE.horaPrimerTurno;
+const HORA_ULTIMO_TURNO = CONFIGURACION_PARQUE.horaUltimoTurno;
 // Zona técnica adoptada para esta entrega; no depende de la zona del dispositivo.
-const ZONA_PARQUE = 'America/Argentina/Buenos_Aires';
+const ZONA_PARQUE = CONFIGURACION_PARQUE.zonaHoraria;
 const FECHA_PARQUE = new Intl.DateTimeFormat('en-GB', {
-  timeZone: ZONA_PARQUE, weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit',
-  hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  timeZone: ZONA_PARQUE,
+  weekday: 'short',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
 });
-const ACTIVIDADES = new Map([
-  ['safari', { edadMinima: 0, requiereTalle: false }],
-  ['jardineria', { edadMinima: 0, requiereTalle: false }],
-  ['palestra', { edadMinima: 12, requiereTalle: true }],
-  ['tirolesa', { edadMinima: 8, requiereTalle: true }],
-]);
+const ACTIVIDADES = new Map(Object.entries(CONFIGURACION_PARQUE.actividades));
 const CARACTERES_INVALIDOS_NOMBRE = /[^\p{L} ]/u;
 const TALLES_ADMITIDOS = new Set(['XS', 'S', 'M', 'L', 'XL', 'XXL']);
 const EDAD_MINIMA = 0;
@@ -36,10 +40,7 @@ export class ServicioInscripcion {
    * @param {{ahora: function(): Date}} [opciones.reloj] Fuente del instante actual.
    * @param {function(string): Promise<Buffer>} [opciones.generadorQr] Codificador PNG.
    */
-  constructor(repositorio, emisorCorreo, {
-    reloj = { ahora: () => new Date() },
-    generadorQr = generarQr,
-  } = {}) {
+  constructor(repositorio, emisorCorreo, { reloj = relojSistema, generadorQr = generarQr } = {}) {
     this.repositorio = repositorio;
     this.emisorCorreo = emisorCorreo;
     this.reloj = reloj;
@@ -73,11 +74,13 @@ export class ServicioInscripcion {
     const inscripcion = this.repositorio.obtenerInscripcion(idInscripcion);
     const imagenQr = await this.generadorQr(JSON.stringify({ idInscripcion }));
     const confirmacion = this.#confirmacionDe(inscripcion);
-    confirmacion.adjuntos = [{
-      nombre: `inscripcion-${idInscripcion}.png`,
-      tipo: 'image/png',
-      contenido: imagenQr,
-    }];
+    confirmacion.adjuntos = [
+      {
+        nombre: `inscripcion-${idInscripcion}.png`,
+        tipo: 'image/png',
+        contenido: imagenQr,
+      },
+    ];
     this.emisorCorreo.enviar(confirmacion);
     return { idInscripcion };
   }
@@ -88,9 +91,11 @@ export class ServicioInscripcion {
    * @returns {boolean} Indica si es un nombre válido.
    */
   validarNombre(nombre) {
-    return typeof nombre === 'string'
-      && nombre.trim().length > 0
-      && !CARACTERES_INVALIDOS_NOMBRE.test(nombre);
+    return (
+      typeof nombre === 'string' &&
+      nombre.trim().length > 0 &&
+      !CARACTERES_INVALIDOS_NOMBRE.test(nombre)
+    );
   }
 
   /**
@@ -99,8 +104,12 @@ export class ServicioInscripcion {
    * @returns {boolean} Indica si el dato es válido.
    */
   validarDni(dni) {
-    if (typeof dni !== 'string' || dni.length === 0 || dni.startsWith('0')
-        || CARACTERES_NO_NUMERICOS_DNI.test(dni)) {
+    if (
+      typeof dni !== 'string' ||
+      dni.length === 0 ||
+      dni.startsWith('0') ||
+      CARACTERES_NO_NUMERICOS_DNI.test(dni)
+    ) {
       return false;
     }
 
@@ -108,7 +117,11 @@ export class ServicioInscripcion {
     return Number.isInteger(valor) && valor >= DNI_MINIMO && valor <= DNI_MAXIMO;
   }
 
-  /** @param {unknown} edad @returns {boolean} Edad entera admitida por el equipo. */
+  /**
+   * Comprueba el contrato numérico de la edad sin convertir el dato recibido.
+   * @param {unknown} edad Dato recibido.
+   * @returns {boolean} Indica si cumple el rango entero configurado para la entrada.
+   */
   validarEdad(edad) {
     return Number.isInteger(edad) && edad >= EDAD_MINIMA && edad <= EDAD_MAXIMA;
   }
@@ -119,9 +132,9 @@ export class ServicioInscripcion {
    * @returns {boolean} Indica si el formato del contacto es válido.
    */
   validarContacto(contacto) {
-    return typeof contacto === 'string'
-      && contacto === contacto.trim()
-      && FORMATO_CORREO.test(contacto);
+    return (
+      typeof contacto === 'string' && contacto === contacto.trim() && FORMATO_CORREO.test(contacto)
+    );
   }
 
   #validarContactoSolicitud(contacto) {
@@ -156,15 +169,19 @@ export class ServicioInscripcion {
     const fecha = Object.fromEntries(
       FECHA_PARQUE.formatToParts(new Date(inicioTurno)).map((parte) => [parte.type, parte.value]),
     );
-    if (Number(fecha.hour) < HORA_PRIMER_TURNO || Number(fecha.hour) > HORA_ULTIMO_TURNO
-        || fecha.minute !== '00' || fecha.second !== '00') {
+    if (
+      Number(fecha.hour) < HORA_PRIMER_TURNO ||
+      Number(fecha.hour) > HORA_ULTIMO_TURNO ||
+      fecha.minute !== '00' ||
+      fecha.second !== '00'
+    ) {
       const error = new Error('El turno debe iniciar en una hora entera entre las 09 y las 17');
       error.name = 'ErrorValidacion';
       error.campo = 'inicioTurno';
       throw error;
     }
-    const esFeriado = (fecha.month === '12' && fecha.day === '25')
-      || (fecha.month === '01' && fecha.day === '01');
+    const esFeriado =
+      (fecha.month === '12' && fecha.day === '25') || (fecha.month === '01' && fecha.day === '01');
     if (fecha.weekday === 'Mon' || esFeriado) {
       const error = new Error('El parque está cerrado en la fecha del turno');
       error.name = 'ErrorValidacion';
@@ -186,8 +203,10 @@ export class ServicioInscripcion {
   }
 
   #validarTerminos(solicitud) {
-    if (solicitud.terminos?.aceptados !== true
-        || solicitud.terminos.actividadId !== solicitud.actividad) {
+    if (
+      solicitud.terminos?.aceptados !== true ||
+      solicitud.terminos.actividadId !== solicitud.actividad
+    ) {
       const error = new Error('Debés aceptar los términos de la actividad');
       error.name = 'ErrorValidacion';
       error.campo = 'terminos';
@@ -196,16 +215,24 @@ export class ServicioInscripcion {
   }
 
   #validarParticipantes(solicitud) {
-    if (solicitud === null || typeof solicitud !== 'object' || Array.isArray(solicitud)
-        || !Array.isArray(solicitud.participantes) || solicitud.participantes.length === 0) {
+    if (
+      solicitud === null ||
+      typeof solicitud !== 'object' ||
+      Array.isArray(solicitud) ||
+      !Array.isArray(solicitud.participantes) ||
+      solicitud.participantes.length === 0
+    ) {
       const error = new Error('La solicitud debe incluir al menos un participante');
       error.name = 'ErrorValidacion';
       error.campo = 'participantes';
       throw error;
     }
     for (const [indice, participante] of solicitud.participantes.entries()) {
-      if (participante === null || typeof participante !== 'object'
-          || Array.isArray(participante)) {
+      if (
+        participante === null ||
+        typeof participante !== 'object' ||
+        Array.isArray(participante)
+      ) {
         const error = new Error(`Los datos del participante ${indice + 1} no son válidos`);
         error.name = 'ErrorValidacion';
         error.campo = 'participantes';

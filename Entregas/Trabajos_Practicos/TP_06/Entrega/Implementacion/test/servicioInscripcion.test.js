@@ -18,7 +18,10 @@ describe('Inscripción a actividad', () => {
     repositorio = new RepositorioParqueEnMemoria();
     // Catálogo local aislado por test: solo existen los turnos dados de alta.
     for (const [actividad, capacidad] of [
-      ['safari', 8], ['jardineria', 12], ['palestra', 12], ['tirolesa', 10],
+      ['safari', 8],
+      ['jardineria', 12],
+      ['palestra', 12],
+      ['tirolesa', 10],
     ]) {
       for (const inicioTurno of [
         '2026-10-14T14:00:00-03:00',
@@ -106,10 +109,7 @@ describe('Inscripción a actividad', () => {
   it('debe rechazar la inscripción cuando un participante tiene un nombre inválido', async () => {
     // Preparación: inválido al inicio y en otro participante del grupo.
     const individual = solicitudValida([{ nombre: '', dni: '33222333', edad: 25 }]);
-    const grupal = solicitudValida([
-      ANA,
-      { nombre: 'Ana@', dni: '33222333', edad: 25 },
-    ]);
+    const grupal = solicitudValida([ANA, { nombre: 'Ana@', dni: '33222333', edad: 25 }]);
 
     // Ejecución y comprobación: no se registra ni se genera confirmación.
     await expect(servicio.inscribir(individual)).rejects.toThrow(Error);
@@ -208,7 +208,9 @@ describe('Inscripción a actividad', () => {
     await expect(servicio.inscribir(individual)).rejects.toThrow('El DNI del participante 1');
     await expect(servicio.inscribir(grupal)).rejects.toThrow('El DNI del participante 2');
     await expect(servicio.inscribir(ceroInicial)).rejects.toMatchObject({
-      name: 'ErrorValidacion', campo: 'dni', participante: 1,
+      name: 'ErrorValidacion',
+      campo: 'dni',
+      participante: 1,
     });
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(repositorio.cuposDisponibles('safari', ceroInicial.inicioTurno)).toBe(8);
@@ -216,12 +218,15 @@ describe('Inscripción a actividad', () => {
   });
   it('debe rechazar la solicitud cuando sus participantes no son válidos', async () => {
     // Preparación y comprobación del límite público, sin conversiones implícitas.
-    await expect(servicio.inscribir(solicitudValida([])))
-      .rejects.toThrow('al menos un participante');
-    await expect(servicio.inscribir(solicitudValida(null)))
-      .rejects.toThrow('al menos un participante');
-    await expect(servicio.inscribir(solicitudValida([ANA, null])))
-      .rejects.toThrow('participante 2');
+    await expect(servicio.inscribir(solicitudValida([]))).rejects.toThrow(
+      'al menos un participante',
+    );
+    await expect(servicio.inscribir(solicitudValida(null))).rejects.toThrow(
+      'al menos un participante',
+    );
+    await expect(servicio.inscribir(solicitudValida([ANA, null]))).rejects.toThrow(
+      'participante 2',
+    );
     await expect(servicio.inscribir(null)).rejects.toThrow('al menos un participante');
     await expect(servicio.inscribir()).rejects.toThrow('al menos un participante');
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
@@ -270,7 +275,10 @@ describe('Inscripción a actividad', () => {
     await expect(servicio.inscribir(limite)).resolves.toBeDefined();
   });
   it('debe aceptar edades válidas cuando se solicita Safari o Jardinería', async () => {
-    const safari = solicitudValida([{ ...ANA, edad: 0 }, { ...JUAN, edad: 120 }]);
+    const safari = solicitudValida([
+      { ...ANA, edad: 0 },
+      { ...JUAN, edad: 120 },
+    ]);
     const jardineria = {
       ...solicitudValida([{ ...ANA, edad: 0 }]),
       actividad: 'jardineria',
@@ -319,10 +327,12 @@ describe('Inscripción a actividad', () => {
     const palestra = solicitudValida([ANA], 'palestra');
     const tirolesa = solicitudValida([{ ...ANA, talle: 'M' }, JUAN], 'tirolesa');
 
-    await expect(servicio.inscribir(palestra))
-      .rejects.toThrow('talle válido para el participante 1');
-    await expect(servicio.inscribir(tirolesa))
-      .rejects.toThrow('talle válido para el participante 2');
+    await expect(servicio.inscribir(palestra)).rejects.toThrow(
+      'talle válido para el participante 1',
+    );
+    await expect(servicio.inscribir(tirolesa)).rejects.toThrow(
+      'talle válido para el participante 2',
+    );
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
@@ -363,8 +373,10 @@ describe('Inscripción a actividad', () => {
     inexistente.inicioTurno = '2026-10-14T16:00:00-03:00';
     const deshabilitado = solicitudValida([ANA]);
     repositorio.agregarTurno({
-      actividad: 'safari', inicioTurno: deshabilitado.inicioTurno,
-      capacidad: 8, habilitado: false,
+      actividad: 'safari',
+      inicioTurno: deshabilitado.inicioTurno,
+      capacidad: 8,
+      habilitado: false,
     });
 
     await expect(servicio.inscribir(inexistente)).rejects.toThrow('El turno no existe');
@@ -375,12 +387,13 @@ describe('Inscripción a actividad', () => {
   it('debe rechazar el grupo completo cuando los cupos disponibles son insuficientes', async () => {
     const primera = solicitudValida([ANA]);
     repositorio.agregarTurno({
-      actividad: 'safari', inicioTurno: primera.inicioTurno, capacidad: 2, habilitado: true,
+      actividad: 'safari',
+      inicioTurno: primera.inicioTurno,
+      capacidad: 2,
+      habilitado: true,
     });
     const registro = await servicio.inscribir(primera);
-    const grupo = solicitudValida([
-      JUAN, { nombre: 'Pedro Sosa', dni: '31222333', edad: 22 },
-    ]);
+    const grupo = solicitudValida([JUAN, { nombre: 'Pedro Sosa', dni: '31222333', edad: 22 }]);
 
     await expect(servicio.inscribir(grupo)).rejects.toThrow('No hay cupos suficientes');
     expect(repositorio.obtenerInscripcion(registro.idInscripcion)).toEqual(primera);
@@ -404,7 +417,10 @@ describe('Inscripción a actividad', () => {
   it('debe aceptar el grupo cuando la cantidad coincide con los cupos disponibles', async () => {
     const solicitud = solicitudValida([ANA, JUAN]);
     repositorio.agregarTurno({
-      actividad: 'safari', inicioTurno: solicitud.inicioTurno, capacidad: 2, habilitado: true,
+      actividad: 'safari',
+      inicioTurno: solicitud.inicioTurno,
+      capacidad: 2,
+      habilitado: true,
     });
 
     const resultado = await servicio.inscribir(solicitud);
@@ -421,13 +437,22 @@ describe('Inscripción a actividad', () => {
     const anioNuevo = solicitudValida([ANA]);
     anioNuevo.inicioTurno = '2027-01-01T14:00:00-03:00';
     repositorio.agregarTurno({
-      actividad: 'safari', inicioTurno: lunes.inicioTurno, capacidad: 8, habilitado: true,
+      actividad: 'safari',
+      inicioTurno: lunes.inicioTurno,
+      capacidad: 8,
+      habilitado: true,
     });
     repositorio.agregarTurno({
-      actividad: 'safari', inicioTurno: navidad.inicioTurno, capacidad: 8, habilitado: true,
+      actividad: 'safari',
+      inicioTurno: navidad.inicioTurno,
+      capacidad: 8,
+      habilitado: true,
     });
     repositorio.agregarTurno({
-      actividad: 'safari', inicioTurno: anioNuevo.inicioTurno, capacidad: 8, habilitado: true,
+      actividad: 'safari',
+      inicioTurno: anioNuevo.inicioTurno,
+      capacidad: 8,
+      habilitado: true,
     });
 
     await expect(servicio.inscribir(lunes)).rejects.toThrow('El parque está cerrado');
@@ -445,13 +470,22 @@ describe('Inscripción a actividad', () => {
     const intermedio = solicitudValida([ANA]);
     intermedio.inicioTurno = '2026-10-14T14:30:00-03:00';
     repositorio.agregarTurno({
-      actividad: 'safari', inicioTurno: temprano.inicioTurno, capacidad: 8, habilitado: true,
+      actividad: 'safari',
+      inicioTurno: temprano.inicioTurno,
+      capacidad: 8,
+      habilitado: true,
     });
     repositorio.agregarTurno({
-      actividad: 'safari', inicioTurno: tarde.inicioTurno, capacidad: 8, habilitado: true,
+      actividad: 'safari',
+      inicioTurno: tarde.inicioTurno,
+      capacidad: 8,
+      habilitado: true,
     });
     repositorio.agregarTurno({
-      actividad: 'safari', inicioTurno: intermedio.inicioTurno, capacidad: 8, habilitado: true,
+      actividad: 'safari',
+      inicioTurno: intermedio.inicioTurno,
+      capacidad: 8,
+      habilitado: true,
     });
 
     await expect(servicio.inscribir(temprano)).rejects.toThrow('entre las 09 y las 17');
@@ -560,9 +594,7 @@ describe('Inscripción a actividad', () => {
   });
   it('debe adjuntar un único QR cuando la inscripción es individual o grupal', async () => {
     const individual = solicitudValida([ANA]);
-    const grupal = solicitudValida([
-      JUAN, { nombre: 'Pedro Sosa', dni: '31222333', edad: 22 },
-    ]);
+    const grupal = solicitudValida([JUAN, { nombre: 'Pedro Sosa', dni: '31222333', edad: 22 }]);
 
     const primera = await servicio.inscribir(individual);
     const segunda = await servicio.inscribir(grupal);
@@ -576,11 +608,11 @@ describe('Inscripción a actividad', () => {
     const pngIndividual = PNG.sync.read(Buffer.from(mensajes[0].adjuntos[0].contenido));
     const pngGrupal = PNG.sync.read(Buffer.from(mensajes[1].adjuntos[0].contenido));
     const qrIndividual = jsQR(
-      new Uint8ClampedArray(pngIndividual.data), pngIndividual.width, pngIndividual.height,
+      new Uint8ClampedArray(pngIndividual.data),
+      pngIndividual.width,
+      pngIndividual.height,
     );
-    const qrGrupal = jsQR(
-      new Uint8ClampedArray(pngGrupal.data), pngGrupal.width, pngGrupal.height,
-    );
+    const qrGrupal = jsQR(new Uint8ClampedArray(pngGrupal.data), pngGrupal.width, pngGrupal.height);
     expect(qrIndividual).not.toBeNull();
     expect(qrGrupal).not.toBeNull();
     expect(JSON.parse(qrIndividual.data)).toEqual({ idInscripcion: primera.idInscripcion });
@@ -597,7 +629,10 @@ describe('Inscripción a actividad', () => {
       { nombre: 'Lucía Ríos', dni: '45333444', edad: 19 },
     ]);
     repositorio.agregarTurno({
-      actividad: 'safari', inicioTurno: primero.inicioTurno, capacidad: 2, habilitado: true,
+      actividad: 'safari',
+      inicioTurno: primero.inicioTurno,
+      capacidad: 2,
+      habilitado: true,
     });
 
     // Ambas solicitudes se inician antes de esperar sus confirmaciones.

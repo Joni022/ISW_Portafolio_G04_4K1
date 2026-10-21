@@ -4,23 +4,41 @@ export class RepositorioParqueEnMemoria {
   #siguienteId = 1;
   #turnos = new Map();
 
-  /** @param {object} turno Configuración local de un turno. @returns {void} */
+  /**
+   * Da de alta la configuración de un turno en el almacenamiento local.
+   * @param {object} turno Configuración del turno.
+   * @returns {void}
+   * @throws {Error} Si capacidad o inicio no son válidos.
+   */
   agregarTurno(turno) {
-    if (!Number.isInteger(turno.capacidad) || turno.capacidad < 0
-        || !Number.isFinite(Date.parse(turno.inicioTurno))) {
+    if (
+      !Number.isInteger(turno.capacidad) ||
+      turno.capacidad < 0 ||
+      !Number.isFinite(Date.parse(turno.inicioTurno))
+    ) {
       throw new Error('La configuración del turno no es válida');
     }
     const clave = this.#claveTurno(turno.actividad, turno.inicioTurno);
     this.#turnos.set(clave, structuredClone(turno));
   }
 
-  /** @param {string} actividad @param {string} inicioTurno @returns {object|null} */
+  /**
+   * Recupera una copia del turno de la actividad y el instante indicados.
+   * @param {string} actividad Identificador de actividad.
+   * @param {string} inicioTurno Fecha y hora ISO.
+   * @returns {object|null} Turno encontrado o ausencia del turno.
+   */
   obtenerTurno(actividad, inicioTurno) {
     const turno = this.#turnos.get(this.#claveTurno(actividad, inicioTurno));
     return turno === undefined ? null : structuredClone(turno);
   }
 
-  /** @param {string} actividad @param {string} inicioTurno @returns {number} Lugares libres. */
+  /**
+   * Calcula los lugares libres a partir de las inscripciones guardadas.
+   * @param {string} actividad Identificador de actividad.
+   * @param {string} inicioTurno Fecha y hora ISO.
+   * @returns {number} Lugares disponibles.
+   */
   cuposDisponibles(actividad, inicioTurno) {
     const turno = this.obtenerTurno(actividad, inicioTurno);
     if (turno === null) {
@@ -28,8 +46,10 @@ export class RepositorioParqueEnMemoria {
     }
     let ocupados = 0;
     for (const inscripcion of this.#inscripciones.values()) {
-      if (inscripcion.actividad === actividad
-          && Date.parse(inscripcion.inicioTurno) === Date.parse(inicioTurno)) {
+      if (
+        inscripcion.actividad === actividad &&
+        Date.parse(inscripcion.inicioTurno) === Date.parse(inicioTurno)
+      ) {
         ocupados += inscripcion.participantes.length;
       }
     }
@@ -40,7 +60,11 @@ export class RepositorioParqueEnMemoria {
     return `${actividad}|${Date.parse(inicioTurno)}`;
   }
 
-  /** @param {object} solicitud @returns {string} Identificador del registro. */
+  /**
+   * Conserva una copia de la solicitud con un identificador local.
+   * @param {object} solicitud Datos validados por el servicio.
+   * @returns {string} Identificador del registro.
+   */
   guardarInscripcion(solicitud) {
     const id = String(this.#siguienteId);
     this.#siguienteId += 1;
@@ -48,7 +72,11 @@ export class RepositorioParqueEnMemoria {
     return id;
   }
 
-  /** @param {string} id @returns {object|null} Copia de la inscripción encontrada. */
+  /**
+   * Recupera una copia del registro sin exponer referencias internas.
+   * @param {string} id Identificador de la inscripción.
+   * @returns {object|null} Inscripción encontrada o ausencia del registro.
+   */
   obtenerInscripcion(id) {
     const solicitud = this.#inscripciones.get(id);
     return solicitud === undefined ? null : structuredClone(solicitud);
