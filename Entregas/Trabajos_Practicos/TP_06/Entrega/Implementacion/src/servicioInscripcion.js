@@ -25,6 +25,7 @@ const EDAD_MAXIMA = 120;
 const DNI_MINIMO = 1000000;
 const DNI_MAXIMO = 99999999;
 const CARACTERES_NO_NUMERICOS_DNI = /[^0-9]/u;
+const FORMATO_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
 /** Coordina el caso de uso de inscripción. */
 export class ServicioInscripcion {
@@ -52,6 +53,7 @@ export class ServicioInscripcion {
    */
   async inscribir(solicitud) {
     this.#validarParticipantes(solicitud);
+    this.#validarContactoSolicitud(solicitud.contacto);
     this.#validarActividad(solicitud.actividad);
     this.#validarTurno(solicitud);
     this.#validarCalendario(solicitud.inicioTurno);
@@ -107,6 +109,26 @@ export class ServicioInscripcion {
   /** @param {unknown} edad @returns {boolean} Edad entera admitida por el equipo. */
   validarEdad(edad) {
     return Number.isInteger(edad) && edad >= EDAD_MINIMA && edad <= EDAD_MAXIMA;
+  }
+
+  /**
+   * Comprueba el formato básico del correo, sin verificar si la dirección existe.
+   * @param {unknown} contacto Correo recibido, sin normalización implícita.
+   * @returns {boolean} Indica si el formato del contacto es válido.
+   */
+  validarContacto(contacto) {
+    return typeof contacto === 'string'
+      && contacto === contacto.trim()
+      && FORMATO_CORREO.test(contacto);
+  }
+
+  #validarContactoSolicitud(contacto) {
+    if (!this.validarContacto(contacto)) {
+      const error = new Error('Ingresá un correo electrónico válido');
+      error.name = 'ErrorValidacion';
+      error.campo = 'contacto';
+      throw error;
+    }
   }
 
   #validarActividad(actividad) {

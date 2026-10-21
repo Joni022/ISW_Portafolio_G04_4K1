@@ -504,6 +504,38 @@ describe('Inscripción a actividad', () => {
     expect(emisorCorreo.mensajes()[0].destinatario).toBe(primera.contacto);
     expect(emisorCorreo.mensajes()[1].destinatario).toBe(segunda.contacto);
   });
+  it('debe validar el contacto cuando el correo es válido, inválido o está ausente', () => {
+    expect(servicio.validarContacto('ana@ejemplo.com')).toBe(true);
+    expect(servicio.validarContacto('ana@ejemplo.com.ar')).toBe(true);
+    expect(servicio.validarContacto('ana.ejemplo.com')).toBe(false);
+    expect(servicio.validarContacto('ana@')).toBe(false);
+    expect(servicio.validarContacto(null)).toBe(false);
+    expect(servicio.validarContacto('')).toBe(false);
+    expect(servicio.validarContacto('   ')).toBe(false);
+    expect(servicio.validarContacto(undefined)).toBe(false);
+    expect(servicio.validarContacto('ana@ejemplo.com\n')).toBe(false);
+  });
+  it('debe rechazar la inscripción cuando el contacto es inválido o está ausente', async () => {
+    // Preparación: el resto de la solicitud es válido.
+    const formatoInvalido = solicitudValida([ANA]);
+    formatoInvalido.contacto = 'ana@';
+    const nulo = solicitudValida([ANA]);
+    nulo.contacto = null;
+    const vacio = solicitudValida([ANA]);
+    vacio.contacto = '';
+    const omitido = solicitudValida([ANA]);
+    delete omitido.contacto;
+
+    // Ejecución y comprobación: todos se rechazan antes del registro.
+    const errorEsperado = { name: 'ErrorValidacion', campo: 'contacto' };
+    await expect(servicio.inscribir(formatoInvalido)).rejects.toMatchObject(errorEsperado);
+    await expect(servicio.inscribir(nulo)).rejects.toMatchObject(errorEsperado);
+    await expect(servicio.inscribir(vacio)).rejects.toMatchObject(errorEsperado);
+    await expect(servicio.inscribir(omitido)).rejects.toMatchObject(errorEsperado);
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(repositorio.cuposDisponibles('safari', formatoInvalido.inicioTurno)).toBe(8);
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
   it('debe adjuntar un único QR cuando la inscripción es individual o grupal', async () => {
     const individual = solicitudValida([ANA]);
     const grupal = solicitudValida([
