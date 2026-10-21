@@ -119,11 +119,13 @@ describe('Inscripción a actividad', () => {
   });
   it('debe validar el DNI cuando su valor es un entero entre 1000000 y 99999999', () => {
     expect(servicio.validarDni('7500000')).toBe(true);
+    expect(servicio.validarDni('1000000')).toBe(true);
     expect(servicio.validarDni('99999999')).toBe(true);
     expect(servicio.validarDni('999999')).toBe(false);
     expect(servicio.validarDni('100000000')).toBe(false);
     expect(servicio.validarDni('abc')).toBe(false);
     expect(servicio.validarDni('7500000.5')).toBe(false);
+    expect(servicio.validarDni('07500000')).toBe(false);
   });
   it('debe rechazar la inscripción cuando ya existe una actividad simultánea', async () => {
     // Preparación: Ana ya tiene Safari y aparece segunda en el nuevo grupo.
@@ -200,11 +202,16 @@ describe('Inscripción a actividad', () => {
     // Preparación: cada solicitud altera solamente el DNI.
     const individual = solicitudValida([{ ...ANA, dni: '999999' }]);
     const grupal = solicitudValida([ANA, { ...JUAN, dni: '1234abc' }]);
+    const ceroInicial = solicitudValida([{ ...ANA, dni: '07500000' }]);
 
     // Ejecución y comprobación.
     await expect(servicio.inscribir(individual)).rejects.toThrow('El DNI del participante 1');
     await expect(servicio.inscribir(grupal)).rejects.toThrow('El DNI del participante 2');
+    await expect(servicio.inscribir(ceroInicial)).rejects.toMatchObject({
+      name: 'ErrorValidacion', campo: 'dni', participante: 1,
+    });
     expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(repositorio.cuposDisponibles('safari', ceroInicial.inicioTurno)).toBe(8);
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
   it('debe rechazar la solicitud cuando sus participantes no son válidos', async () => {

@@ -99,7 +99,8 @@ export class ServicioInscripcion {
    * @returns {boolean} Indica si el dato es válido.
    */
   validarDni(dni) {
-    if (typeof dni !== 'string' || dni.length === 0 || CARACTERES_NO_NUMERICOS_DNI.test(dni)) {
+    if (typeof dni !== 'string' || dni.length === 0 || dni.startsWith('0')
+        || CARACTERES_NO_NUMERICOS_DNI.test(dni)) {
       return false;
     }
 
