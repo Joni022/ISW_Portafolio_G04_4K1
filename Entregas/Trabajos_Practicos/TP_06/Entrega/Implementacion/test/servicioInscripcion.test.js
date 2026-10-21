@@ -145,6 +145,24 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.obtenerInscripcion('2')).toBeNull();
     expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
+  it('debe rechazar la inscripción cuando la persona ya está inscripta en la misma actividad y turno', async () => {
+    // Preparación: la primera inscripción ya ocupa un lugar en Safari.
+    const solicitud = solicitudValida([ANA]);
+    const primera = await servicio.inscribir(solicitud);
+
+    // Ejecución y comprobación: repetirla no modifica el registro ni sus efectos.
+    await expect(servicio.inscribir(solicitud)).rejects.toMatchObject({
+      name: 'ErrorValidacion',
+      campo: 'inicioTurno',
+      participante: 1,
+      message: 'El participante 1 ya tiene una inscripción en ese horario',
+    });
+    expect(repositorio.obtenerInscripcion(primera.idInscripcion)).toEqual(solicitud);
+    expect(repositorio.obtenerInscripcion('2')).toBeNull();
+    expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(7);
+    expect(emisorCorreo.mensajes()).toHaveLength(1);
+    expect(emisorCorreo.mensajes()[0].adjuntos).toHaveLength(1);
+  });
   it('debe aceptar la inscripción cuando cambia la persona, el horario o la fecha', async () => {
     // Preparación: Ana ya está inscripta a Safari el 14/10 a las 14:00.
     await servicio.inscribir(solicitudValida([ANA]));
