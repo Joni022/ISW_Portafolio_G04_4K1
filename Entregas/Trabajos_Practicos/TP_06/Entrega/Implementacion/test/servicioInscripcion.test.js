@@ -536,6 +536,21 @@ describe('Inscripción a actividad', () => {
     expect(repositorio.cuposDisponibles('safari', formatoInvalido.inicioTurno)).toBe(8);
     expect(emisorCorreo.mensajes()).toHaveLength(0);
   });
+  it('debe rechazar la inscripción cuando se repite un DNI dentro del grupo', async () => {
+    // Preparación: el DNI repetido está en posiciones no consecutivas.
+    const solicitud = solicitudValida([ANA, JUAN, { ...ANA }]);
+
+    // Ejecución y comprobación: se identifica al participante y se rechaza todo el grupo.
+    await expect(servicio.inscribir(solicitud)).rejects.toMatchObject({
+      name: 'ErrorValidacion',
+      campo: 'dni',
+      participante: 3,
+      message: 'El participante 3 tiene un DNI repetido en el grupo',
+    });
+    expect(repositorio.obtenerInscripcion('1')).toBeNull();
+    expect(repositorio.cuposDisponibles('safari', solicitud.inicioTurno)).toBe(8);
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+  });
   it('debe adjuntar un único QR cuando la inscripción es individual o grupal', async () => {
     const individual = solicitudValida([ANA]);
     const grupal = solicitudValida([

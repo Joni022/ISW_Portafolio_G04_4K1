@@ -62,6 +62,7 @@ export class ServicioInscripcion {
     this.#validarNombres(solicitud.participantes);
     this.#validarEdades(solicitud.participantes);
     this.#validarDocumentos(solicitud.participantes);
+    this.#validarDniRepetidos(solicitud.participantes);
     this.#validarEdadActividad(solicitud);
     this.#validarVestimenta(solicitud);
     this.#validarDisponibilidad(solicitud);
@@ -246,6 +247,20 @@ export class ServicioInscripcion {
         error.participante = indice + 1;
         throw error;
       }
+    }
+  }
+
+  #validarDniRepetidos(participantes) {
+    const documentos = new Set();
+    for (const [indice, participante] of participantes.entries()) {
+      if (documentos.has(participante.dni)) {
+        const error = new Error(`El participante ${indice + 1} tiene un DNI repetido en el grupo`);
+        error.name = 'ErrorValidacion';
+        error.campo = 'dni';
+        error.participante = indice + 1;
+        throw error;
+      }
+      documentos.add(participante.dni);
     }
   }
 
