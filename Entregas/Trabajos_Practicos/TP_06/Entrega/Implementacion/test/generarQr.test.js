@@ -14,8 +14,8 @@ describe('Código QR', () => {
     // Comprobación: firma PNG y lectura real de sus píxeles.
     expect(imagen.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
     const png = PNG.sync.read(imagen);
-    expect(png.width).toBeGreaterThan(0);
-    expect(png.height).toBeGreaterThan(0);
+    expect(png.width).toBe(760);
+    expect(png.height).toBe(550);
   });
 
   it('debe recuperar el contenido original cuando se decodifica el QR generado', async () => {
