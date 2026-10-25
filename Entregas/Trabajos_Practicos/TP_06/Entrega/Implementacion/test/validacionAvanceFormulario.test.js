@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { validarAvanceFormulario } from '../prototipo/validacionAvanceFormulario.js';
+import {
+  validarAvanceFormulario,
+  validarNavegacionFormulario,
+} from '../prototipo/validacionAvanceFormulario.js';
 
 describe('Avance del formulario de inscripción', () => {
   it('debe impedir avanzar desde fecha y horario cuando no se eligió un turno', () => {
@@ -36,5 +39,17 @@ describe('Avance del formulario de inscripción', () => {
     );
 
     expect(mensaje).toBeNull();
+  });
+
+  it('debe permitir volver a participantes desde fecha y horario cuando el turno ya fue elegido', () => {
+    const mensaje = validarNavegacionFormulario({ date: '2026-10-25', time: '17:00' }, 1, 2, false);
+
+    expect(mensaje).toBeNull();
+  });
+
+  it('debe impedir abrir confirmación desde actividad cuando falta elegir un turno', () => {
+    const mensaje = validarNavegacionFormulario({ date: null, time: null }, 0, 3, false);
+
+    expect(mensaje).toBe('Elegí un horario para continuar.');
   });
 });

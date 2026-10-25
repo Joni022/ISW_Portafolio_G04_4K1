@@ -36,6 +36,24 @@ export function validarAvanceFormulario(estado, paso, requiereTalle) {
   return null;
 }
 
+/**
+ * Comprueba las etapas que se atravesarían al usar el indicador de progreso.
+ * @param {object} estado Datos ingresados durante el recorrido.
+ * @param {number} pasoActual Etapa visible antes de navegar.
+ * @param {number} pasoDestino Etapa solicitada desde el indicador.
+ * @param {boolean} requiereTalle Indica si la actividad solicita talle.
+ * @returns {string|null} Mensaje de bloqueo o ausencia de etapas pendientes.
+ */
+export function validarNavegacionFormulario(estado, pasoActual, pasoDestino, requiereTalle) {
+  for (let paso = pasoActual; paso < pasoDestino; paso += 1) {
+    const mensaje = validarAvanceFormulario(estado, paso, requiereTalle);
+    if (mensaje) {
+      return mensaje;
+    }
+  }
+  return null;
+}
+
 function tieneContenido(valor) {
   return typeof valor === 'string' ? valor.trim().length > 0 : Number.isFinite(valor);
 }

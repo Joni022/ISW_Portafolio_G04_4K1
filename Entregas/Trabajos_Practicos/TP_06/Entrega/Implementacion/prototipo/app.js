@@ -1,7 +1,10 @@
 import { TERMINOS_ACTIVIDADES } from './terms.js';
 import { mediosParque } from './media.js';
 import { CONFIGURACION_PARQUE } from './configuracionParque.js';
-import { validarAvanceFormulario } from './validacionAvanceFormulario.js';
+import {
+  validarAvanceFormulario,
+  validarNavegacionFormulario,
+} from './validacionAvanceFormulario.js';
 
 ('use strict');
 
@@ -1133,10 +1136,19 @@ function renderizarCorreo() {
 function atenderBoton(button, keyboard) {
   if (button.dataset.step !== undefined) {
     const siguientePaso = Number(button.dataset.step);
-    if (siguientePaso > estado.step) {
-      mostrarAviso('Completá la etapa actual para continuar.');
+    const mensaje = validarNavegacionFormulario(
+      estado,
+      estado.step,
+      siguientePaso,
+      actividadActual().clothing,
+    );
+    if (mensaje) {
+      estado.errorFormulario = mensaje;
+      renderizar({ keyboard });
+      mostrarAviso(mensaje);
       return;
     }
+    estado.errorFormulario = '';
     estado.step = siguientePaso;
     const expired = estado.step === 1 && limpiarTurnoVencido();
     renderizar({ navigate: true, keyboard });

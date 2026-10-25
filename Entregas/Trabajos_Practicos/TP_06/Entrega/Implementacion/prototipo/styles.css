@@ -1483,8 +1483,8 @@ dd {
 }
 
 .qr {
-  width: 100px;
-  height: 100px;
+  width: 280px;
+  height: 202px;
   flex-shrink: 0;
   padding: 3px;
   background: var(--cream);
@@ -2403,8 +2403,8 @@ dialog::backdrop {
     gap: 16px;
   }
   .qr {
-    width: 81px;
-    height: 81px;
+    width: 190px;
+    height: 138px;
   }
   .qr-row h3 {
     font-size: 17px;
@@ -2586,8 +2586,8 @@ dialog::backdrop {
     gap: 12px;
   }
   .qr {
-    width: 68px;
-    height: 68px;
+    width: 150px;
+    height: 109px;
   }
   .qr-row h3 {
     font-size: 15px;
