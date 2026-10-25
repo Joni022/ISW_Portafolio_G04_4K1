@@ -1,6 +1,7 @@
 import { TERMINOS_ACTIVIDADES } from './terms.js';
 import { mediosParque } from './media.js';
 import { CONFIGURACION_PARQUE } from './configuracionParque.js';
+import { validarAvanceFormulario } from './validacionAvanceFormulario.js';
 
 ('use strict');
 
@@ -522,6 +523,7 @@ function etapaHorarios() {
     </section>`;
   };
   return /* HTML */ `${encabezado('Elegí tu momento.', 'Podés inscribirte desde 24 horas hasta 15 minutos antes del inicio.')}
+    ${estado.errorFormulario ? /* HTML */ `<p class="form-error" role="alert">${escapeHtml(estado.errorFormulario)}</p>` : ''}
     <div class="park-clock">
       ${icono('clock')}Hora del parque: <strong>${horaParque(ahora)}</strong>
     </div>
@@ -1130,7 +1132,12 @@ function renderizarCorreo() {
 
 function atenderBoton(button, keyboard) {
   if (button.dataset.step !== undefined) {
-    estado.step = Number(button.dataset.step);
+    const siguientePaso = Number(button.dataset.step);
+    if (siguientePaso > estado.step) {
+      mostrarAviso('Completá la etapa actual para continuar.');
+      return;
+    }
+    estado.step = siguientePaso;
     const expired = estado.step === 1 && limpiarTurnoVencido();
     renderizar({ navigate: true, keyboard });
     if (expired) {
@@ -1197,6 +1204,14 @@ function atenderBoton(button, keyboard) {
   } else if (action === 'confirm') {
     void confirmarInscripcion(keyboard);
   } else if (action === 'next') {
+    const mensaje = validarAvanceFormulario(estado, estado.step, actividadActual().clothing);
+    if (mensaje) {
+      estado.errorFormulario = mensaje;
+      renderizar({ keyboard });
+      mostrarAviso(mensaje);
+      return;
+    }
+    estado.errorFormulario = '';
     estado.step = Math.min(3, estado.step + 1);
     const expired = estado.step === 1 && limpiarTurnoVencido();
     renderizar({ navigate: true, keyboard });
