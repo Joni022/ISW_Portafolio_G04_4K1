@@ -1327,6 +1327,43 @@ dd {
   gap: 28px;
 }
 
+.confirmation-contact {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 22px;
+  padding: 16px 18px;
+  border: 1px solid rgb(56 102 65 / 0.24);
+  border-radius: 8px;
+  background: rgb(242 232 207 / 0.72);
+}
+
+.confirmation-contact > svg {
+  width: 22px;
+  flex: 0 0 auto;
+  color: var(--forest);
+}
+
+.confirmation-contact span,
+.confirmation-contact strong,
+.confirmation-contact p {
+  display: block;
+}
+
+.confirmation-contact span {
+  font-size: 12px;
+}
+
+.confirmation-contact strong {
+  margin-top: 3px;
+  font-size: 16px;
+}
+
+.confirmation-contact p {
+  margin: 5px 0 0;
+  font-size: 13px;
+}
+
 .ticket {
   border: 1px solid var(--forest);
   border-radius: 12px;
@@ -3353,6 +3390,18 @@ body.motion-reduced[data-step='0'] {
   background: var(--forest);
   color: var(--cream);
   box-shadow: 0 4px 8px rgb(56 102 65 / 0.18);
+}
+.slot-card.sold-out,
+.slot-card:disabled {
+  cursor: not-allowed;
+  border-color: rgb(56 102 65 / 0.16);
+  background: rgb(242 232 207 / 0.5);
+  color: rgb(56 102 65 / 0.52);
+  opacity: 0.72;
+}
+.slot-card.sold-out .slot-capacity,
+.slot-card:disabled .slot-capacity {
+  color: inherit;
 }
 .slot-time {
   display: flex;

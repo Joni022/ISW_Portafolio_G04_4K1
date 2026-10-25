@@ -91,6 +91,8 @@ const estado = {
   qrUrl: null,
   errorFormulario: '',
   enviando: false,
+  cuposPorTurno: {},
+  claveConsultaCupos: '',
 };
 const movimientoReducido = matchMedia('(prefers-reduced-motion: reduce)');
 const animacionesTransicion = new Set();
@@ -264,6 +266,63 @@ function diaParque(fecha) {
 
 function claveSeleccion(fecha, hora) {
   return `${fecha}-${hora}`;
+}
+
+function cuposDisponibles(fecha, hora) {
+  return estado.cuposPorTurno[claveSeleccion(fecha, hora)] ?? actividadActual().capacity;
+}
+
+function actualizarCuposVisibles() {
+  if (estado.view !== 'booking' || estado.step !== 1) {
+    return;
+  }
+  const fechas = horariosDisponibles().map((grupo) => grupo.key);
+  const clave = `${estado.activity}|${fechas.join(',')}`;
+  if (estado.claveConsultaCupos === clave) {
+    return;
+  }
+  estado.claveConsultaCupos = clave;
+  void Promise.all(
+    fechas.map(async (fecha) => {
+      const respuesta = await fetch(
+        `/api/turnos?actividad=${encodeURIComponent(estado.activity)}&fecha=${encodeURIComponent(fecha)}`,
+      );
+      if (!respuesta.ok) {
+        throw new Error('No se pudieron consultar los cupos.');
+      }
+      return { fecha, datos: await respuesta.json() };
+    }),
+  )
+    .then((resultados) => {
+      if (estado.claveConsultaCupos !== clave) {
+        return;
+      }
+      const cupos = {};
+      for (const resultado of resultados) {
+        for (const turno of resultado.datos.turnos) {
+          cupos[claveSeleccion(resultado.fecha, turno.hora)] = turno.cuposDisponibles;
+        }
+      }
+      estado.cuposPorTurno = cupos;
+      if (estado.date && estado.time && cupos[claveSeleccion(estado.date, estado.time)] === 0) {
+        estado.date = null;
+        estado.time = null;
+        estado.confirmed = false;
+        mostrarAviso('El horario elegido ya no tiene cupos disponibles. Elegí otro.');
+      }
+      renderizar();
+    })
+    .catch(() => {
+      if (estado.claveConsultaCupos === clave) {
+        estado.claveConsultaCupos = '';
+        mostrarAviso('No pudimos actualizar los cupos. Intentá nuevamente.');
+      }
+    });
+}
+
+function reiniciarConsultaCupos() {
+  estado.cuposPorTurno = {};
+  estado.claveConsultaCupos = '';
 }
 
 function limpiarTurnoVencido(ahora = new Date()) {
@@ -493,17 +552,21 @@ function etapaHorarios() {
             const selected = estado.date === dia.key && estado.time === hora;
             const end = horaFinTurno(hora);
             const key = claveSeleccion(dia.key, hora);
+            const cupos = cuposDisponibles(dia.key, hora);
+            const agotado = cupos === 0;
             return /* HTML */ `<button
-              class="slot-card ${selected ? 'selected' : ''}"
+              class="slot-card ${selected ? 'selected' : ''} ${agotado ? 'sold-out' : ''}"
               data-slot-date="${dia.key}"
               data-slot-time="${hora}"
               data-slot-key="${key}"
               aria-pressed="${selected}"
-              aria-label="${dia.label}, ${diaParque(dia.key)}, de ${hora} a ${end}, ${actividadActual().capacity} lugares disponibles"
+              aria-label="${dia.label}, ${diaParque(dia.key)}, de ${hora} a ${end}, ${cupos} lugares disponibles"
+              ${agotado ? 'disabled' : ''}
             >
               <span class="slot-time">${hora}<small>–${end}</small></span
               ><span class="slot-capacity"
-                >${icono('people')}${actividadActual().capacity} lugares disponibles</span
+                >${icono('people')}${cupos}
+                ${cupos === 1 ? 'lugar disponible' : 'lugares disponibles'}</span
               ><span class="slot-choice-mark">${icono('check')}</span>
             </button>`;
           })
@@ -720,9 +783,7 @@ function etapaConfirmacion() {
     ? 'Tené tu pase a mano al llegar a la actividad.'
     : 'Comprobá los datos de tu experiencia antes de confirmar.';
   const actions = estado.confirmed
-    ? /* HTML */ `<button class="secondary" data-action="mail">
-        ${icono('mail')}Ver confirmación por correo${icono('arrow')}
-      </button>`
+    ? ''
     : botonPrincipal(
         estado.enviando ? 'Confirmando inscripción...' : 'Confirmar inscripción',
         'confirm',
@@ -753,6 +814,18 @@ function etapaConfirmacion() {
           )}${estado.confirmed ? '' : /* HTML */ `<button class="text-button" data-action="edit">Editar participantes ${icono('arrow')}</button>`}
       </section>
     </div>
+    ${
+      estado.confirmed
+        ? /* HTML */ `<section class="confirmation-contact">
+            ${icono('mail')}
+            <div>
+              <span>Correo de contacto</span>
+              <strong>${escapeHtml(estado.email)}</strong>
+              <p>La confirmación de tu inscripción será enviada a esta dirección.</p>
+            </div>
+          </section>`
+        : ''
+    }
     <div class="summary-actions">${actions}</div>`;
 }
 
@@ -826,6 +899,7 @@ function renderizar({ navigate = false, keyboard = false, focus = null } = {}) {
   byId('stage').innerHTML = [etapaActividad, etapaHorarios, etapaParticipantes, etapaConfirmacion][
     estado.step
   ]();
+  actualizarCuposVisibles();
   sincronizarActualizacionHorarios();
   sincronizarMovimiento();
   if (navigate) {
@@ -1150,6 +1224,9 @@ function atenderBoton(button, keyboard) {
     }
     estado.errorFormulario = '';
     estado.step = siguientePaso;
+    if (estado.step === 1) {
+      reiniciarConsultaCupos();
+    }
     const expired = estado.step === 1 && limpiarTurnoVencido();
     renderizar({ navigate: true, keyboard });
     if (expired) {
@@ -1161,6 +1238,7 @@ function atenderBoton(button, keyboard) {
     estado.confirmed = false;
     estado.qrUrl = null;
     estado.errorFormulario = '';
+    reiniciarConsultaCupos();
     estado.activity = button.dataset.activity;
     estado.accepted = false;
     renderizar({ keyboard, focus: `[data-activity="${estado.activity}"]` });
@@ -1169,11 +1247,11 @@ function atenderBoton(button, keyboard) {
   if (button.dataset.slotDate && button.dataset.slotTime) {
     const fecha = button.dataset.slotDate;
     const hora = button.dataset.slotTime;
-    if (!esTurnoDisponible(fecha, hora)) {
+    if (!esTurnoDisponible(fecha, hora) || cuposDisponibles(fecha, hora) === 0) {
       estado.date = null;
       estado.time = null;
       renderizar();
-      mostrarAviso('El horario elegido ya no admite inscripción. Elegí otro.');
+      mostrarAviso('El horario elegido ya no está disponible. Elegí otro.');
       return;
     }
     estado.date = fecha;
@@ -1212,6 +1290,7 @@ function atenderBoton(button, keyboard) {
     estado.errorFormulario = '';
     estado.view = 'booking';
     estado.step = 0;
+    reiniciarConsultaCupos();
     renderizar({ navigate: true, keyboard });
   } else if (action === 'confirm') {
     void confirmarInscripcion(keyboard);
@@ -1225,6 +1304,9 @@ function atenderBoton(button, keyboard) {
     }
     estado.errorFormulario = '';
     estado.step = Math.min(3, estado.step + 1);
+    if (estado.step === 1) {
+      reiniciarConsultaCupos();
+    }
     const expired = estado.step === 1 && limpiarTurnoVencido();
     renderizar({ navigate: true, keyboard });
     if (expired) {
@@ -1232,6 +1314,9 @@ function atenderBoton(button, keyboard) {
     }
   } else if (action === 'previous') {
     estado.step = Math.max(0, estado.step - 1);
+    if (estado.step === 1) {
+      reiniciarConsultaCupos();
+    }
     const expired = estado.step === 1 && limpiarTurnoVencido();
     renderizar({ navigate: true, keyboard });
     if (expired) {

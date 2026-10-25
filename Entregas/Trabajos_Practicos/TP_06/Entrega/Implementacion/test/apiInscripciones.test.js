@@ -71,6 +71,20 @@ describe('API de inscripciones', () => {
       participante: 1,
     });
   });
+
+  it('debe informar el cupo restante de un turno luego de registrar una inscripción', async () => {
+    await fetch(`${baseUrl}/api/inscripciones`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(solicitudValida()),
+    });
+
+    const respuesta = await fetch(`${baseUrl}/api/turnos?actividad=safari&fecha=2026-10-14`);
+    const resultado = await respuesta.json();
+
+    expect(respuesta.status).toBe(200);
+    expect(resultado.turnos).toContainEqual({ hora: '14:00', cuposDisponibles: 7 });
+  });
 });
 
 function solicitudValida() {

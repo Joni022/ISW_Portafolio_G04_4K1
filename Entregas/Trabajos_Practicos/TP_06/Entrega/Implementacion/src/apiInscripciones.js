@@ -45,6 +45,26 @@ export function crearApiInscripciones({
       if (atenderResumenInscripcion(solicitud, respuesta, repositorio)) {
         return true;
       }
+      if (url.pathname === '/api/turnos') {
+        if (solicitud.method !== 'GET') {
+          respuesta.writeHead(405, { Allow: 'GET' }).end();
+          return true;
+        }
+        const actividad = url.searchParams.get('actividad');
+        const fecha = url.searchParams.get('fecha');
+        if (
+          !Object.hasOwn(CONFIGURACION_PARQUE.actividades, actividad) ||
+          !/^\d{4}-\d{2}-\d{2}$/u.test(fecha ?? '')
+        ) {
+          responderJson(respuesta, 400, { mensaje: 'La consulta de turnos no es válida.' });
+          return true;
+        }
+        registrarTurnosVigentes(repositorio, reloj.ahora());
+        responderJson(respuesta, 200, {
+          turnos: obtenerTurnosDisponibles(repositorio, actividad, fecha),
+        });
+        return true;
+      }
       if (url.pathname !== '/api/inscripciones') {
         return false;
       }
@@ -213,4 +233,24 @@ function estaEnVentana(inicioTurno, ahora) {
     minutos >= CONFIGURACION_PARQUE.minutosCierreInscripcion &&
     minutos <= CONFIGURACION_PARQUE.horasAperturaInscripcion * MINUTOS_POR_HORA
   );
+}
+
+function obtenerTurnosDisponibles(repositorio, actividad, fecha) {
+  const turnos = [];
+  for (
+    let hora = CONFIGURACION_PARQUE.horaPrimerTurno;
+    hora <= CONFIGURACION_PARQUE.horaUltimoTurno;
+    hora += 1
+  ) {
+    const horaTexto = `${String(hora).padStart(2, '0')}:00`;
+    const inicioTurno = `${fecha}T${horaTexto}:00-03:00`;
+    const turno = repositorio.obtenerTurno(actividad, inicioTurno);
+    if (turno?.habilitado === true) {
+      turnos.push({
+        hora: horaTexto,
+        cuposDisponibles: repositorio.cuposDisponibles(actividad, inicioTurno),
+      });
+    }
+  }
+  return turnos;
 }
