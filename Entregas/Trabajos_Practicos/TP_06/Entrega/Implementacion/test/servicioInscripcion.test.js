@@ -35,6 +35,7 @@ describe('Inscripción a actividad', () => {
     ahora = new Date('2026-10-14T10:00:00-03:00');
     servicio = new ServicioInscripcion(repositorio, emisorCorreo, {
       reloj: { ahora: () => new Date(ahora) },
+      urlResumen: (idInscripcion) => `https://ecoharmony.test/inscripciones/${idInscripcion}`,
     });
   });
 
@@ -633,8 +634,12 @@ describe('Inscripción a actividad', () => {
     const qrGrupal = jsQR(new Uint8ClampedArray(pngGrupal.data), pngGrupal.width, pngGrupal.height);
     expect(qrIndividual).not.toBeNull();
     expect(qrGrupal).not.toBeNull();
-    expect(JSON.parse(qrIndividual.data)).toEqual({ idInscripcion: primera.idInscripcion });
-    expect(JSON.parse(qrGrupal.data)).toEqual({ idInscripcion: segunda.idInscripcion });
+    expect(qrIndividual.data).toBe(
+      `https://ecoharmony.test/inscripciones/${repositorio.obtenerCodigoResumen(primera.idInscripcion)}`,
+    );
+    expect(qrGrupal.data).toBe(
+      `https://ecoharmony.test/inscripciones/${repositorio.obtenerCodigoResumen(segunda.idInscripcion)}`,
+    );
     expect(repositorio.obtenerInscripcion(primera.idInscripcion)).toEqual(individual);
     expect(repositorio.obtenerInscripcion(segunda.idInscripcion)).toEqual(grupal);
     expect(mensajes[0].participantes).toEqual(individual.participantes);

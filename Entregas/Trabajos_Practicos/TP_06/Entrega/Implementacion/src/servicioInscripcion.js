@@ -39,12 +39,21 @@ export class ServicioInscripcion {
    * @param {object} [opciones] Reloj y generador de QR reemplazables.
    * @param {{ahora: function(): Date}} [opciones.reloj] Fuente del instante actual.
    * @param {function(string): Promise<Buffer>} [opciones.generadorQr] Codificador PNG.
+   * @param {function(string): string} opciones.urlResumen Enlace público del resumen por código QR.
    */
-  constructor(repositorio, emisorCorreo, { reloj = relojSistema, generadorQr = generarQr } = {}) {
+  constructor(
+    repositorio,
+    emisorCorreo,
+    { reloj = relojSistema, generadorQr = generarQr, urlResumen } = {},
+  ) {
     this.repositorio = repositorio;
     this.emisorCorreo = emisorCorreo;
     this.reloj = reloj;
     this.generadorQr = generadorQr;
+    if (typeof urlResumen !== 'function') {
+      throw new TypeError('El servicio de inscripción requiere una URL de resumen.');
+    }
+    this.urlResumen = urlResumen;
   }
 
   /**
@@ -72,7 +81,8 @@ export class ServicioInscripcion {
     // Validar y registrar sin await evita intercalar solicitudes en este proceso.
     const idInscripcion = this.repositorio.guardarInscripcion(solicitud);
     const inscripcion = this.repositorio.obtenerInscripcion(idInscripcion);
-    const imagenQr = await this.generadorQr(JSON.stringify({ idInscripcion }));
+    const codigoResumen = this.repositorio.obtenerCodigoResumen(idInscripcion);
+    const imagenQr = await this.generadorQr(this.urlResumen(codigoResumen));
     const confirmacion = this.#confirmacionDe(inscripcion);
     confirmacion.adjuntos = [
       {

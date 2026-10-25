@@ -1,8 +1,18 @@
+import { randomUUID } from 'node:crypto';
+
 /** Almacena inscripciones durante una sesión del proceso. */
 export class RepositorioParqueEnMemoria {
   #inscripciones = new Map();
+  #codigosResumen = new Map();
   #siguienteId = 1;
   #turnos = new Map();
+
+  /**
+   * @param {{generarCodigoResumen?: function(): string}} [opciones] Generador reemplazable del código público.
+   */
+  constructor({ generarCodigoResumen = randomUUID } = {}) {
+    this.generarCodigoResumen = generarCodigoResumen;
+  }
 
   /**
    * Da de alta la configuración de un turno en el almacenamiento local.
@@ -69,7 +79,31 @@ export class RepositorioParqueEnMemoria {
     const id = String(this.#siguienteId);
     this.#siguienteId += 1;
     this.#inscripciones.set(id, structuredClone(solicitud));
+    this.#codigosResumen.set(id, this.generarCodigoResumen());
     return id;
+  }
+
+  /**
+   * Recupera el código público no predecible asociado a una inscripción.
+   * @param {string} id Identificador interno de la inscripción.
+   * @returns {string|null} Código de resumen o ausencia del registro.
+   */
+  obtenerCodigoResumen(id) {
+    return this.#codigosResumen.get(id) ?? null;
+  }
+
+  /**
+   * Recupera una inscripción por el código incluido en el QR.
+   * @param {string} codigoResumen Código público de resumen.
+   * @returns {object|null} Inscripción encontrada o ausencia del registro.
+   */
+  obtenerInscripcionPorCodigoResumen(codigoResumen) {
+    for (const [id, codigo] of this.#codigosResumen.entries()) {
+      if (codigo === codigoResumen) {
+        return this.obtenerInscripcion(id);
+      }
+    }
+    return null;
   }
 
   /**
