@@ -27,22 +27,39 @@ export function crearServidorResumenInscripcion(repositorio) {
   }
 
   return createServer((solicitud, respuesta) => {
-    const url = new URL(solicitud.url, `http://${solicitud.headers.host ?? 'localhost'}`);
-    const coincidencia = RUTA_RESUMEN.exec(url.pathname);
-    if (solicitud.method !== 'GET' || coincidencia === null) {
+    if (!atenderResumenInscripcion(solicitud, respuesta, repositorio)) {
       responderNoEncontrado(respuesta);
-      return;
     }
-
-    const inscripcion = repositorio.obtenerInscripcionPorCodigoResumen(coincidencia[1]);
-    if (inscripcion === null) {
-      responderNoEncontrado(respuesta);
-      return;
-    }
-
-    respuesta.writeHead(200, encabezadosHtml());
-    respuesta.end(crearResumenHtml(inscripcion));
   });
+}
+
+/**
+ * Atiende la ruta pública de un resumen cuando está presente en la solicitud.
+ * @param {import('node:http').IncomingMessage} solicitud Solicitud HTTP recibida.
+ * @param {import('node:http').ServerResponse} respuesta Respuesta HTTP a completar.
+ * @param {{obtenerInscripcionPorCodigoResumen: function(string): object|null}} repositorio Fuente de inscripciones.
+ * @returns {boolean} Indica si la solicitud correspondía a la ruta de resumen.
+ */
+export function atenderResumenInscripcion(solicitud, respuesta, repositorio) {
+  const url = new URL(solicitud.url, `http://${solicitud.headers.host ?? 'localhost'}`);
+  const coincidencia = RUTA_RESUMEN.exec(url.pathname);
+  if (coincidencia === null) {
+    return false;
+  }
+  if (solicitud.method !== 'GET') {
+    responderNoEncontrado(respuesta);
+    return true;
+  }
+
+  const inscripcion = repositorio.obtenerInscripcionPorCodigoResumen(coincidencia[1]);
+  if (inscripcion === null) {
+    responderNoEncontrado(respuesta);
+    return true;
+  }
+
+  respuesta.writeHead(200, encabezadosHtml());
+  respuesta.end(crearResumenHtml(inscripcion));
+  return true;
 }
 
 function responderNoEncontrado(respuesta) {

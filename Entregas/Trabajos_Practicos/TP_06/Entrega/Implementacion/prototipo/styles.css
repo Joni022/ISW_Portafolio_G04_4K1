@@ -3728,6 +3728,21 @@ body[data-step='3'] .experience > .primary[data-action='confirm'] {
     padding: 24px 18px;
   }
 }
+
+.form-error {
+  background: #fff7ef;
+  border-left: 0.25rem solid #b33a3a;
+  color: #762f2f;
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+}
+
+.qr img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
 @media (max-width: 359px) {
   .welcome-content {
     padding-right: 18px;

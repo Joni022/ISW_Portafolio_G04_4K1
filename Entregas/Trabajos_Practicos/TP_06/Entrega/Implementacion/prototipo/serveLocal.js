@@ -3,9 +3,12 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { crearApiInscripciones } from '../src/apiInscripciones.js';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8766);
+const URL_PUBLICA = process.env.URL_PUBLICA ?? `http://127.0.0.1:${PORT}`;
+const apiInscripciones = crearApiInscripciones({ urlPublica: URL_PUBLICA });
 const TYPES = new Map([
   ['.html', 'text/html; charset=utf-8'],
   ['.js', 'text/javascript; charset=utf-8'],
@@ -17,8 +20,10 @@ const TYPES = new Map([
   ['.txt', 'text/plain; charset=utf-8'],
 ]);
 
-// Servidor local de archivos; no implementa el backend de inscripciones.
 createServer(async (request, response) => {
+  if (await apiInscripciones.atender(request, response)) {
+    return;
+  }
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     response.writeHead(405, { Allow: 'GET, HEAD' }).end();
     return;

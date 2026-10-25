@@ -84,6 +84,9 @@ const estado = {
   email: '',
   accepted: false,
   confirmed: false,
+  qrUrl: null,
+  errorFormulario: '',
+  enviando: false,
 };
 const movimientoReducido = matchMedia('(prefers-reduced-motion: reduce)');
 const animacionesTransicion = new Set();
@@ -152,7 +155,11 @@ function textoFecha() {
     : 'Por elegir';
 }
 function botonPrincipal(label, action) {
-  return /* HTML */ `<button class="primary" data-action="${action}">
+  return /* HTML */ `<button
+    class="primary"
+    data-action="${action}"
+    ${action === 'confirm' && estado.enviando ? 'disabled' : ''}
+  >
     ${label}${icono('arrow')}
   </button>`;
 }
@@ -524,6 +531,7 @@ function etapaHorarios() {
 function etapaParticipantes() {
   const actividad = actividadActual();
   return /* HTML */ `${encabezado('La aventura se comparte.', 'Sumá a quienes van a vivir este momento con vos.')}
+    ${estado.errorFormulario ? /* HTML */ `<p class="form-error" role="alert">${escapeHtml(estado.errorFormulario)}</p>` : ''}
     <div class="quantity-row">
       <div>
         <h2>¿Cuántas personas participan?</h2>
@@ -628,6 +636,11 @@ function etapaParticipantes() {
 }
 
 function qr() {
+  if (estado.qrUrl) {
+    return /* HTML */ `<div class="qr" role="img" aria-label="Código QR de tu inscripción">
+      <img src="${escapeHtml(estado.qrUrl)}" alt="Código QR para consultar tu inscripción" />
+    </div>`;
+  }
   let rectangles = '';
   for (let y = 0; y < 21; y++) {
     for (let x = 0; x < 21; x++) {
@@ -705,8 +718,12 @@ function etapaConfirmacion() {
     ? /* HTML */ `<button class="secondary" data-action="mail">
         ${icono('mail')}Ver confirmación por correo${icono('arrow')}
       </button>`
-    : botonPrincipal('Confirmar inscripción', 'confirm');
+    : botonPrincipal(
+        estado.enviando ? 'Confirmando inscripción...' : 'Confirmar inscripción',
+        'confirm',
+      );
   return /* HTML */ `${encabezado(title, subtitle)}
+    ${estado.errorFormulario ? /* HTML */ `<p class="form-error" role="alert">${escapeHtml(estado.errorFormulario)}</p>` : ''}
     <div class="confirmation-layout">
       ${pase()}
       <section class="review-participants">
@@ -895,6 +912,7 @@ function ventanaCorreo(keyboard = false) {
       .slice(0, estado.count)
       .map((participante) => ({ ...participante })),
     email: estado.email,
+    qrUrl: estado.qrUrl,
   };
   const opened = window.open(
     `?vista=correo&preview=${Date.now()}`,
@@ -982,6 +1000,7 @@ function recibirDatosCorreo(raw) {
   estado.participants = participantes;
   estado.count = participantes.length;
   estado.email = typeof raw.email === 'string' ? raw.email : '';
+  estado.qrUrl = typeof raw.qrUrl === 'string' ? raw.qrUrl : null;
   estado.date =
     typeof raw.date === 'string' &&
     /^\d{4}-\d{2}-\d{2}$/.test(raw.date) &&
@@ -990,6 +1009,61 @@ function recibirDatosCorreo(raw) {
       : null;
   estado.time = typeof raw.time === 'string' && /^\d{2}:\d{2}$/.test(raw.time) ? raw.time : null;
   return true;
+}
+
+function crearSolicitudInscripcion() {
+  const inicioTurno =
+    estado.date && estado.time ? fechaTurno(estado.date, estado.time).toISOString() : null;
+  return {
+    actividad: estado.activity,
+    contacto: estado.email,
+    inicioTurno,
+    participantes: estado.participants.slice(0, estado.count).map((participante) => ({
+      nombre: participante.name,
+      dni: participante.dni,
+      edad: participante.age === '' ? null : Number(participante.age),
+      ...(actividadActual().clothing ? { talle: participante.size } : {}),
+    })),
+    terminos: { actividadId: estado.activity, aceptados: estado.accepted },
+  };
+}
+
+async function confirmarInscripcion(keyboard) {
+  if (estado.enviando) {
+    return;
+  }
+  estado.enviando = true;
+  estado.errorFormulario = '';
+  renderizar({ keyboard });
+  try {
+    const respuesta = await fetch('/api/inscripciones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(crearSolicitudInscripcion()),
+    });
+    const resultado = await respuesta.json();
+    if (!respuesta.ok) {
+      estado.errorFormulario = resultado.mensaje ?? 'No pudimos validar la inscripción.';
+      if (
+        resultado.participante !== undefined ||
+        ['contacto', 'terminos'].includes(resultado.campo)
+      ) {
+        estado.step = 2;
+      } else if (resultado.campo === 'inicioTurno') {
+        estado.step = 1;
+      }
+      return;
+    }
+    estado.qrUrl = resultado.qrUrl;
+    estado.confirmed = true;
+    mostrarAviso('Tu inscripción fue confirmada.');
+  } catch {
+    estado.errorFormulario =
+      'No pudimos conectar con el servicio de inscripciones. Intentá nuevamente.';
+  } finally {
+    estado.enviando = false;
+    renderizar({ navigate: estado.confirmed, keyboard });
+  }
 }
 
 function renderizarCorreo() {
@@ -1066,6 +1140,8 @@ function atenderBoton(button, keyboard) {
   }
   if (button.dataset.activity) {
     estado.confirmed = false;
+    estado.qrUrl = null;
+    estado.errorFormulario = '';
     estado.activity = button.dataset.activity;
     estado.accepted = false;
     renderizar({ keyboard, focus: `[data-activity="${estado.activity}"]` });
@@ -1084,6 +1160,8 @@ function atenderBoton(button, keyboard) {
     estado.date = fecha;
     estado.time = hora;
     estado.confirmed = false;
+    estado.qrUrl = null;
+    estado.errorFormulario = '';
     renderizar({ keyboard, focus: `[data-slot-key="${claveSeleccion(fecha, hora)}"]` });
     return;
   }
@@ -1111,12 +1189,13 @@ function atenderBoton(button, keyboard) {
     renderizar({ navigate: true, keyboard });
   } else if (action === 'enter' || action === 'activities') {
     estado.confirmed = false;
+    estado.qrUrl = null;
+    estado.errorFormulario = '';
     estado.view = 'booking';
     estado.step = 0;
     renderizar({ navigate: true, keyboard });
   } else if (action === 'confirm') {
-    estado.confirmed = true;
-    renderizar({ navigate: true, keyboard });
+    void confirmarInscripcion(keyboard);
   } else if (action === 'next') {
     estado.step = Math.min(3, estado.step + 1);
     const expired = estado.step === 1 && limpiarTurnoVencido();
@@ -1133,6 +1212,8 @@ function atenderBoton(button, keyboard) {
     }
   } else if (action === 'edit') {
     estado.confirmed = false;
+    estado.qrUrl = null;
+    estado.errorFormulario = '';
     estado.step = 2;
     renderizar({ navigate: true, keyboard });
   } else if (action === 'more') {
@@ -1229,6 +1310,8 @@ document.addEventListener('input', (event) => {
   const element = event.target;
   if (element.dataset.person !== undefined) {
     estado.confirmed = false;
+    estado.qrUrl = null;
+    estado.errorFormulario = '';
     const index = Number(element.dataset.person);
     if (
       !Number.isInteger(index) ||
@@ -1241,9 +1324,13 @@ document.addEventListener('input', (event) => {
   } else if (element.dataset.field === 'email') {
     estado.email = element.value;
     estado.confirmed = false;
+    estado.qrUrl = null;
+    estado.errorFormulario = '';
   } else if (element.id === 'accept-terms') {
     estado.accepted = element.checked;
     estado.confirmed = false;
+    estado.qrUrl = null;
+    estado.errorFormulario = '';
   }
 });
 document.addEventListener('focusin', (event) => {
