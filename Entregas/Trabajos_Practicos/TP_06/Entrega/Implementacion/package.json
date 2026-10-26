@@ -1,0 +1,32 @@
+{
+  "name": "ecoharmony-tp06",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prototipo": "node prototipo/serveLocal.js",
+    "lint": "eslint src test prototipo eslint.config.js",
+    "format": "prettier --write src test prototipo eslint.config.js .prettierrc.json package.json",
+    "format:check": "prettier --check src test prototipo eslint.config.js .prettierrc.json package.json"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.13.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.13.0",
+    "jsqr": "1.4.0",
+    "prettier": "3.9.10",
+    "vitest": "5.0.5"
+  },
+  "dependencies": {
+    "pngjs": "7.0.0",
+    "qrcode": "1.5.4",
+    "resend": "^6.34.1",
+    "sharp": "^0.35.5"
+  }
+}
