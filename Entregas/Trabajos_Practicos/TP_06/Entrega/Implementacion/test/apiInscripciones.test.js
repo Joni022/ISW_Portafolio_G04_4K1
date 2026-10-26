@@ -3,6 +3,7 @@ import jsQR from 'jsqr';
 import { PNG } from 'pngjs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { crearApiInscripciones } from '../src/apiInscripciones.js';
+import { EmisorCorreoSimulado } from '../src/emisorCorreoSimulado.js';
 
 describe('API de inscripciones', () => {
   let api;
@@ -84,6 +85,46 @@ describe('API de inscripciones', () => {
 
     expect(respuesta.status).toBe(200);
     expect(resultado.turnos).toContainEqual({ hora: '14:00', cuposDisponibles: 7 });
+  });
+
+  it('debe conservar los cupos y conflictos cuando el prototipo usa inscripciones precargadas', async () => {
+    const emisorCorreo = new EmisorCorreoSimulado();
+    api = crearApiInscripciones({
+      reloj: { ahora: () => new Date('2026-10-14T10:00:00-03:00') },
+      urlPublica: () => baseUrl,
+      precargarInscripciones: true,
+      emisorCorreo,
+    });
+
+    const primera = await fetch(`${baseUrl}/api/turnos?actividad=safari&fecha=2026-10-14`);
+    const cupos = await primera.json();
+    expect(cupos.turnos).toContainEqual({ hora: '11:00', cuposDisponibles: 0 });
+    expect(cupos.turnos).toContainEqual({ hora: '12:00', cuposDisponibles: 8 });
+    expect(cupos.turnos).toContainEqual({ hora: '13:00', cuposDisponibles: 6 });
+    expect(cupos.turnos).toContainEqual({ hora: '14:00', cuposDisponibles: 1 });
+    expect(emisorCorreo.mensajes()).toHaveLength(0);
+
+    const repetida = solicitudValida();
+    repetida.actividad = 'jardineria';
+    repetida.terminos.actividadId = 'jardineria';
+    repetida.participantes[0].dni = '90000001';
+    const rechazo = await fetch(`${baseUrl}/api/inscripciones`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(repetida),
+    });
+    expect(rechazo.status).toBe(422);
+    expect((await rechazo.json()).mensaje).toContain('ya tiene una inscripción en ese horario');
+
+    const aceptada = await fetch(`${baseUrl}/api/inscripciones`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(solicitudValida()),
+    });
+    expect(aceptada.status).toBe(201);
+    const segunda = await fetch(`${baseUrl}/api/turnos?actividad=safari&fecha=2026-10-14`);
+    expect((await segunda.json()).turnos).toContainEqual({ hora: '14:00', cuposDisponibles: 0 });
+    expect(emisorCorreo.mensajes()).toHaveLength(1);
   });
 });
 

@@ -25,6 +25,8 @@
   },
   "dependencies": {
     "pngjs": "7.0.0",
-    "qrcode": "1.5.4"
+    "qrcode": "1.5.4",
+    "resend": "^6.34.1",
+    "sharp": "^0.35.5"
   }
 }

@@ -42,11 +42,24 @@ describe('Resumen de inscripción por QR', () => {
 
     expect(respuesta.status).toBe(200);
     expect(pagina).toContain('Resumen de tu inscripción');
-    expect(pagina).toContain('safari');
+    expect(pagina).toContain('Safari');
+    expect(pagina).toContain('src="/assets/photos/safari.jpg"');
+    expect(pagina).toContain('href="/resumen.css"');
     expect(pagina).toContain('Ana Gómez');
     expect(pagina).toContain('Juan Pérez');
     expect(pagina).toContain('14:00');
+    expect(pagina).toContain('15:00');
+    expect(pagina).toContain('2 personas');
+    expect(pagina).not.toContain('30111222');
+    expect(pagina).not.toContain('ana@ejemplo.com');
+    expect(respuesta.headers.get('content-security-policy')).toContain("img-src 'self'");
     expect(respuesta.headers.get('cache-control')).toBe('no-store');
+    const fotografia = await fetch(`${baseUrl}/assets/photos/safari.jpg`);
+    expect(fotografia.status).toBe(200);
+    expect(fotografia.headers.get('content-type')).toBe('image/jpeg');
+    const estilos = await fetch(`${baseUrl}/resumen.css`);
+    expect(estilos.status).toBe(200);
+    expect(estilos.headers.get('content-type')).toBe('text/css; charset=utf-8');
   });
 
   it('debe abrir el resumen cuando se escanea el QR de una inscripción registrada', async () => {

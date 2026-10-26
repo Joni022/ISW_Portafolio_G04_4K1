@@ -4,11 +4,18 @@ import { stat } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearApiInscripciones } from '../src/apiInscripciones.js';
+import { EmisorCorreoResend } from '../src/emisorCorreoResend.js';
+import { EmisorCorreoSimulado } from '../src/emisorCorreoSimulado.js';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8766);
 const URL_PUBLICA = process.env.URL_PUBLICA ?? `http://127.0.0.1:${PORT}`;
-const apiInscripciones = crearApiInscripciones({ urlPublica: URL_PUBLICA });
+const emisorCorreo = crearEmisorCorreo();
+const apiInscripciones = crearApiInscripciones({
+  emisorCorreo,
+  precargarInscripciones: true,
+  urlPublica: URL_PUBLICA,
+});
 const TYPES = new Map([
   ['.html', 'text/html; charset=utf-8'],
   ['.js', 'text/javascript; charset=utf-8'],
@@ -19,6 +26,15 @@ const TYPES = new Map([
   ['.ttf', 'font/ttf'],
   ['.txt', 'text/plain; charset=utf-8'],
 ]);
+
+function crearEmisorCorreo() {
+  if (typeof process.env.RESEND_API_KEY === 'string' && process.env.RESEND_API_KEY.trim()) {
+    console.log('Confirmaciones: Resend configurado.');
+    return new EmisorCorreoResend();
+  }
+  console.warn('Confirmaciones: simuladas. Configurá RESEND_API_KEY para enviar correos reales.');
+  return new EmisorCorreoSimulado();
+}
 
 createServer(async (request, response) => {
   if (await apiInscripciones.atender(request, response)) {

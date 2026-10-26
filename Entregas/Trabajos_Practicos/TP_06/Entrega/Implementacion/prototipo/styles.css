@@ -1188,6 +1188,7 @@ dd {
 }
 
 .participant-card {
+  overflow: hidden;
   padding: 28px 0;
   border-bottom: 1px solid var(--line);
 }
@@ -1217,6 +1218,25 @@ dd {
 
 .person-title svg {
   width: 20px;
+}
+
+.remove-participant {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  background: transparent;
+  color: var(--forest);
+  font: inherit;
+  font-size: 12px;
+}
+
+.remove-participant:hover {
+  color: #9a3131;
+}
+
+.remove-participant:focus-visible {
+  outline: 3px solid var(--forest);
+  outline-offset: 3px;
 }
 
 .fields {
@@ -3969,4 +3989,26 @@ body:not(.home-view)[data-step='0'] {
     width: 170px;
     opacity: 0.04;
   }
+}
+
+/* Pase mobile first: el QR ocupa su propia fila, también en el correo. */
+.ticket .qr-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+.ticket .qr-row .qr {
+  display: block;
+  flex: none;
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+  padding: 0;
+}
+.ticket .qr-row .qr img {
+  display: block;
+  width: 100%;
+  height: auto;
 }

@@ -1,161 +1,83 @@
 import QRCode from 'qrcode';
-import { PNG } from 'pngjs';
+import sharp from 'sharp';
 
-const ANCHO_IMAGEN = 760;
-const ALTO_IMAGEN = 550;
-const VERDE_OSCURO = [56, 102, 65, 255];
-const CREMA = [242, 232, 207, 255];
-const MARGEN_SILENCIOSO = 4;
+const VERDE = '#386641';
+const CREMA = '#f2e8cf';
+const MARGEN = 1;
+const LADO_CODIGO = 324;
+// Contorno estable, independiente de los módulos del QR.
+const SILUETA = `M108 263 C111 181 149 126 218 114
+ C297 99 366 121 426 132 C451 84 503 67 547 89
+ C596 113 613 167 615 217 C639 244 669 225 680 185
+ C688 154 679 120 678 98 C676 76 692 76 704 95
+ C726 134 723 192 705 231 C687 272 650 302 610 291
+ C594 287 582 278 573 268 C562 321 539 365 511 385
+ L506 485 Q505 498 492 498 L453 498 Q440 498 440 485 L435 430
+ L403 435 L400 487 Q400 501 386 501 L351 501 Q339 501 337 487 L331 437
+ L263 437 L255 487 Q254 501 241 501 L205 501 Q192 501 194 487 L198 431
+ L164 422 L153 484 Q151 498 137 498 L103 498 Q91 498 94 485 L110 348
+ C105 323 104 291 108 263 Z`;
 
 /**
- * Genera un QR escaneable integrado a la silueta de un elefante.
- * @param {string} contenido Texto por codificar.
- * @returns {Promise<Buffer>} Imagen PNG del elefante con el QR integrado.
- * @throws {Error} Contenido inválido o demasiado extenso.
+ * Genera el pase desde un contorno vectorial fijo y un QR dinámico en el torso.
+ * @param {string} contenido Enlace o texto por codificar.
+ * @returns {Promise<Buffer>} PNG de 1520 × 1100 para pase y adjunto de correo.
+ * @throws {Error} Si el contenido es inválido o demasiado extenso.
  */
 export async function generarQr(contenido) {
   if (typeof contenido !== 'string' || contenido.trim().length === 0) {
     throw new Error('El contenido del QR no puede estar vacío.');
   }
-
   const codigo = QRCode.create(contenido, { errorCorrectionLevel: 'H' });
-  const modulo = Math.floor(270 / (codigo.modules.size + MARGEN_SILENCIOSO * 2));
+  const modulo = LADO_CODIGO / (codigo.modules.size + MARGEN * 2);
   if (modulo < 4) {
     throw new Error('El contenido del QR es demasiado extenso para el pase de inscripción.');
   }
-
-  const imagen = new PNG({ width: ANCHO_IMAGEN, height: ALTO_IMAGEN });
-  rellenar(imagen, CREMA);
-  dibujarElefante(imagen, modulo);
-  dibujarCodigo(imagen, codigo, modulo);
-  return PNG.sync.write(imagen);
-}
-
-function rellenar(imagen, color) {
-  for (let y = 0; y < imagen.height; y += 1) {
-    for (let x = 0; x < imagen.width; x += 1) {
-      pintar(imagen, x, y, color);
-    }
-  }
-}
-
-function dibujarElefante(imagen, modulo) {
-  elipse(imagen, 322, 290, 235, 137, VERDE_OSCURO);
-  elipse(imagen, 528, 265, 101, 113, VERDE_OSCURO);
-  rectangulo(imagen, 124, 349, 184, 462, VERDE_OSCURO);
-  rectangulo(imagen, 216, 364, 278, 470, VERDE_OSCURO);
-  rectangulo(imagen, 347, 369, 411, 471, VERDE_OSCURO);
-  rectangulo(imagen, 443, 354, 505, 469, VERDE_OSCURO);
-  trazo(imagen, 603, 276, 642, 225, 30, VERDE_OSCURO);
-  trazo(imagen, 642, 225, 644, 133, 30, VERDE_OSCURO);
-  trazo(imagen, 123, 283, 84, 353, 10, VERDE_OSCURO);
-
-  for (let y = 128; y < 474; y += modulo) {
-    for (let x = 84; x < 660; x += modulo) {
-      if (esPielElefante(x + modulo / 2, y + modulo / 2) && patron(x / modulo, y / modulo)) {
-        rectangulo(imagen, x, y, x + modulo - 1, y + modulo - 1, CREMA);
-      }
-    }
-  }
-
-  elipse(imagen, 494, 246, 50, 72, CREMA);
-  elipse(imagen, 505, 250, 33, 52, VERDE_OSCURO);
-  elipse(imagen, 506, 250, 25, 43, CREMA);
-  circulo(imagen, 558, 208, 10, CREMA);
-  circulo(imagen, 559, 208, 4, VERDE_OSCURO);
-  trazo(imagen, 569, 283, 591, 269, 5, CREMA);
-  trazo(imagen, 600, 300, 620, 288, 4, CREMA);
-  trazo(imagen, 619, 281, 634, 265, 4, CREMA);
-  trazo(imagen, 635, 258, 640, 240, 4, CREMA);
-  dibujarDedos(imagen, 141, 457);
-  dibujarDedos(imagen, 235, 465);
-  dibujarDedos(imagen, 376, 466);
-  dibujarDedos(imagen, 473, 464);
-}
-
-function dibujarCodigo(imagen, codigo, modulo) {
-  const lado = codigo.modules.size * modulo;
-  const origenX = 180;
-  const origenY = 130;
-  const margen = MARGEN_SILENCIOSO * modulo;
-  rectangulo(
-    imagen,
-    origenX - margen,
-    origenY - margen,
-    origenX + lado + margen - 1,
-    origenY + lado + margen - 1,
-    CREMA,
-  );
+  const lado = (codigo.modules.size + MARGEN * 2) * modulo;
+  const x = 135;
+  const y = 121;
+  const modulos = [];
   for (let fila = 0; fila < codigo.modules.size; fila += 1) {
     for (let columna = 0; columna < codigo.modules.size; columna += 1) {
       if (codigo.modules.get(fila, columna)) {
-        const x = origenX + columna * modulo;
-        const y = origenY + fila * modulo;
-        rectangulo(imagen, x, y, x + modulo - 1, y + modulo - 1, VERDE_OSCURO);
+        modulos.push(
+          `<rect x="${x + (columna + MARGEN) * modulo}" y="${y + (fila + MARGEN) * modulo}" width="${modulo}" height="${modulo}"/>`,
+        );
       }
     }
   }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 550" width="1520" height="1100">
+    <defs><clipPath id="piel"><path d="${SILUETA}"/></clipPath></defs>
+    <rect width="760" height="550" fill="${CREMA}"/>
+    <path d="${SILUETA}" fill="${CREMA}" stroke="${VERDE}" stroke-width="5"/>
+    <g clip-path="url(#piel)" fill="${VERDE}">${patronPiel()}</g>
+    <path d="M110 246 C82 269 84 310 68 332" fill="none" stroke="${VERDE}" stroke-width="6" stroke-linecap="round"/>
+    <path d="M68 327 Q56 335 61 344 Q73 345 75 331" fill="${VERDE}"/>
+    <rect x="${x}" y="${y}" width="${lado}" height="${lado}" fill="${CREMA}"/>
+    <g fill="${VERDE}" shape-rendering="crispEdges">${modulos.join('')}</g>
+    <path d="M520 125 C479 106 465 137 467 185 C469 226 487 247 510 261 C534 234 543 196 542 160 C542 143 531 131 520 125 Z" fill="${CREMA}" stroke="${VERDE}" stroke-width="5"/>
+    <path d="M520 137 C486 122 480 146 481 181 C482 210 493 232 506 241" fill="none" stroke="${VERDE}" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="566" cy="161" r="9" fill="${CREMA}"/><circle cx="566" cy="161" r="4.5" fill="${VERDE}"/>
+    <path d="M580 230 Q595 238 610 228" fill="none" stroke="${VERDE}" stroke-width="4" stroke-linecap="round"/>
+    <g stroke="${CREMA}" stroke-width="4">${[116, 130, 144, 212, 226, 240, 352, 366, 380, 457, 471, 485].map((dedo) => `<path d="M${dedo} 485v13"/>`).join('')}</g>
+  </svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
-function esPielElefante(x, y) {
-  const cuerpo = ((x - 322) / 235) ** 2 + ((y - 290) / 137) ** 2 <= 1;
-  const cabeza = ((x - 528) / 101) ** 2 + ((y - 265) / 113) ** 2 <= 1;
-  const patas =
-    (x >= 124 && x <= 184 && y >= 349 && y <= 462) ||
-    (x >= 216 && x <= 278 && y >= 364 && y <= 470) ||
-    (x >= 347 && x <= 411 && y >= 369 && y <= 471) ||
-    (x >= 443 && x <= 505 && y >= 354 && y <= 469);
-  return cuerpo || cabeza || patas;
-}
-
-function patron(x, y) {
-  return Math.abs((Math.floor(x) * 73 + Math.floor(y) * 151 + Math.floor(x * y) * 17) % 101) < 52;
-}
-
-function dibujarDedos(imagen, x, y) {
-  for (const desplazamiento of [-15, 0, 15]) {
-    trazo(imagen, x + desplazamiento, y, x + desplazamiento, y + 14, 4, CREMA);
-  }
-}
-
-function rectangulo(imagen, izquierda, arriba, derecha, abajo, color) {
-  for (let y = Math.max(0, arriba); y <= Math.min(imagen.height - 1, abajo); y += 1) {
-    for (let x = Math.max(0, izquierda); x <= Math.min(imagen.width - 1, derecha); x += 1) {
-      pintar(imagen, x, y, color);
-    }
-  }
-}
-
-function elipse(imagen, centroX, centroY, radioX, radioY, color) {
-  for (let y = centroY - radioY; y <= centroY + radioY; y += 1) {
-    for (let x = centroX - radioX; x <= centroX + radioX; x += 1) {
-      if (((x - centroX) / radioX) ** 2 + ((y - centroY) / radioY) ** 2 <= 1) {
-        pintar(imagen, x, y, color);
+function patronPiel() {
+  const modulos = [];
+  let semilla = 173;
+  for (let y = 80; y < 505; y += 8) {
+    for (let x = 88; x < 728; x += 8) {
+      // Secuencia estable sin franjas diagonales ni dependencia del contenido del QR.
+      semilla ^= semilla << 13;
+      semilla ^= semilla >>> 17;
+      semilla ^= semilla << 5;
+      semilla >>>= 0;
+      if (semilla / 4294967296 < 0.6) {
+        modulos.push(`<rect x="${x}" y="${y}" width="8" height="8"/>`);
       }
     }
   }
-}
-
-function circulo(imagen, centroX, centroY, radio, color) {
-  elipse(imagen, centroX, centroY, radio, radio, color);
-}
-
-function trazo(imagen, inicioX, inicioY, finX, finY, grosor, color) {
-  const pasos = Math.max(Math.abs(finX - inicioX), Math.abs(finY - inicioY));
-  for (let paso = 0; paso <= pasos; paso += 1) {
-    const x = Math.round(inicioX + ((finX - inicioX) * paso) / pasos);
-    const y = Math.round(inicioY + ((finY - inicioY) * paso) / pasos);
-    circulo(imagen, x, y, grosor / 2, color);
-  }
-}
-
-function pintar(imagen, x, y, color) {
-  if (x < 0 || y < 0 || x >= imagen.width || y >= imagen.height) {
-    return;
-  }
-  const indice = (imagen.width * y + x) * 4;
-  imagen.data[indice] = color[0];
-  imagen.data[indice + 1] = color[1];
-  imagen.data[indice + 2] = color[2];
-  imagen.data[indice + 3] = color[3];
+  return modulos.join('');
 }

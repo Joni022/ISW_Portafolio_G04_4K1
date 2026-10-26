@@ -1,6 +1,7 @@
 import { TERMINOS_ACTIVIDADES } from './terms.js';
 import { mediosParque } from './media.js';
 import { CONFIGURACION_PARQUE } from './configuracionParque.js';
+import { eliminarParticipante } from './participantes.js';
 import {
   validarAvanceFormulario,
   validarNavegacionFormulario,
@@ -622,10 +623,23 @@ function etapaParticipantes() {
         return /* HTML */ `<section
           class="participant-card"
           aria-labelledby="person-title-${index}"
+          data-participant-card="${index}"
         >
           <div class="person-title">
             <span>${String(index + 1).padStart(2, '0')}</span>
             <h2 id="person-title-${index}">Participante ${index + 1}</h2>
+            ${
+              index > 0
+                ? /* HTML */ `<button
+                    class="remove-participant"
+                    data-action="remove-participant"
+                    data-participant-index="${index}"
+                    aria-label="Quitar participante ${index + 1}"
+                  >
+                    Quitar
+                  </button>`
+                : ''
+            }
             ${icono('person')}
           </div>
           <div class="fields">
@@ -705,8 +719,13 @@ function etapaParticipantes() {
 
 function qr() {
   if (estado.qrUrl) {
-    return /* HTML */ `<div class="qr" role="img" aria-label="Código QR de tu inscripción">
-      <img src="${escapeHtml(estado.qrUrl)}" alt="Código QR para consultar tu inscripción" />
+    return /* HTML */ `<div class="qr">
+      <img
+        src="${escapeHtml(estado.qrUrl)}"
+        width="1520"
+        height="1100"
+        alt="Elefante con código QR para consultar tu inscripción"
+      />
     </div>`;
   }
   let rectangles = '';
@@ -1135,7 +1154,11 @@ async function confirmarInscripcion(keyboard) {
     }
     estado.qrUrl = resultado.qrUrl;
     estado.confirmed = true;
-    mostrarAviso('Tu inscripción fue confirmada.');
+    mostrarAviso(
+      resultado.correoEnviado === false
+        ? 'Tu inscripción fue confirmada, pero no pudimos enviar el correo.'
+        : 'Tu inscripción fue confirmada y enviamos la confirmación a tu correo.',
+    );
   } catch {
     estado.errorFormulario =
       'No pudimos conectar con el servicio de inscripciones. Intentá nuevamente.';
@@ -1351,6 +1374,12 @@ function atenderBoton(button, keyboard) {
       keyboard,
       focus: estado.count === 1 ? '[data-action="more"]' : '[data-action="less"]',
     });
+  } else if (action === 'remove-participant') {
+    const indice = Number(button.dataset.participantIndex);
+    if (!Number.isInteger(indice) || indice <= 0 || indice >= estado.count) {
+      return;
+    }
+    void animarYEliminarParticipante(indice, keyboard);
   } else if (action === 'terms') {
     abrirModal(
       /* HTML */ `<span class="dialog-leaf">${icono('leaf')}</span>
@@ -1410,6 +1439,32 @@ function atenderBoton(button, keyboard) {
     title.focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
+}
+
+async function animarYEliminarParticipante(indice, keyboard) {
+  const tarjeta = document.querySelector(`[data-participant-card="${indice}"]`);
+  if (tarjeta && puedeAnimar(keyboard)) {
+    const altura = tarjeta.getBoundingClientRect().height;
+    const animacion = animarElemento(
+      tarjeta,
+      [
+        { opacity: 1, maxHeight: `${altura}px`, transform: 'translateX(0)' },
+        { opacity: 0, maxHeight: '0px', transform: 'translateX(16px)' },
+      ],
+      { duration: 220, easing: 'cubic-bezier(.22,1,.36,1)' },
+    );
+    try {
+      await animacion?.finished;
+    } catch {
+      // Cancelar la animación no debe impedir quitar el participante.
+    }
+  }
+  estado.confirmed = false;
+  estado.qrUrl = null;
+  estado.errorFormulario = '';
+  estado.participants = eliminarParticipante(estado.participants, indice);
+  estado.count = estado.participants.length;
+  renderizar({ keyboard, focus: '[data-action="more"]' });
 }
 
 document.addEventListener('click', (event) => {

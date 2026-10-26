@@ -84,6 +84,7 @@ export class ServicioInscripcion {
     const codigoResumen = this.repositorio.obtenerCodigoResumen(idInscripcion);
     const imagenQr = await this.generadorQr(this.urlResumen(codigoResumen));
     const confirmacion = this.#confirmacionDe(inscripcion);
+    confirmacion.idInscripcion = idInscripcion;
     confirmacion.adjuntos = [
       {
         nombre: `inscripcion-${idInscripcion}.png`,
@@ -91,8 +92,12 @@ export class ServicioInscripcion {
         contenido: imagenQr,
       },
     ];
-    this.emisorCorreo.enviar(confirmacion);
-    return { idInscripcion };
+    try {
+      await this.emisorCorreo.enviar(confirmacion);
+      return { idInscripcion, correoEnviado: true };
+    } catch {
+      return { idInscripcion, correoEnviado: false };
+    }
   }
 
   /**

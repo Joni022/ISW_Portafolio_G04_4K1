@@ -1,6 +1,7 @@
 import { generarQr } from './generarQr.js';
 import { EmisorCorreoSimulado } from './emisorCorreoSimulado.js';
 import { relojSistema } from './relojSistema.js';
+import { precargarInscripcionesTurno } from './precargaInscripciones.js';
 import { RepositorioParqueEnMemoria } from './repositorioParqueEnMemoria.js';
 import { atenderResumenInscripcion } from './servidorResumenInscripcion.js';
 import { ServicioInscripcion } from './servicioInscripcion.js';
@@ -17,6 +18,7 @@ const MINUTOS_POR_HORA = 60;
  * @param {RepositorioParqueEnMemoria} [opciones.repositorio] Almacenamiento de la sesión.
  * @param {EmisorCorreoSimulado} [opciones.emisorCorreo] Emisor de confirmaciones.
  * @param {{ahora: function(): Date}} [opciones.reloj] Fuente del instante actual.
+ * @param {boolean} [opciones.precargarInscripciones] Carga inicial ficticia para la presentación.
  * @param {string|function(): string} opciones.urlPublica Base pública para enlaces QR.
  * @returns {{atender: function(import('node:http').IncomingMessage, import('node:http').ServerResponse): Promise<boolean>}}
  */
@@ -24,6 +26,7 @@ export function crearApiInscripciones({
   repositorio = new RepositorioParqueEnMemoria(),
   emisorCorreo = new EmisorCorreoSimulado(),
   reloj = relojSistema,
+  precargarInscripciones = false,
   urlPublica,
 } = {}) {
   if (typeof urlPublica !== 'string' && typeof urlPublica !== 'function') {
@@ -59,7 +62,7 @@ export function crearApiInscripciones({
           responderJson(respuesta, 400, { mensaje: 'La consulta de turnos no es válida.' });
           return true;
         }
-        registrarTurnosVigentes(repositorio, reloj.ahora());
+        registrarTurnosVigentes(repositorio, reloj.ahora(), precargarInscripciones);
         responderJson(respuesta, 200, {
           turnos: obtenerTurnosDisponibles(repositorio, actividad, fecha),
         });
@@ -81,7 +84,7 @@ export function crearApiInscripciones({
         return true;
       }
 
-      registrarTurnosVigentes(repositorio, reloj.ahora());
+      registrarTurnosVigentes(repositorio, reloj.ahora(), precargarInscripciones);
       try {
         const resultado = await servicio.inscribir(datos);
         const codigoResumen = repositorio.obtenerCodigoResumen(resultado.idInscripcion);
@@ -89,6 +92,7 @@ export function crearApiInscripciones({
         responderJson(respuesta, 201, {
           idInscripcion: resultado.idInscripcion,
           qrUrl: `${resumenUrl}/qr.png`,
+          correoEnviado: resultado.correoEnviado,
           resumenUrl,
         });
       } catch (error) {
@@ -172,7 +176,7 @@ function obtenerUrlPublica(urlPublica) {
   return valor.replace(/\/$/u, '');
 }
 
-function registrarTurnosVigentes(repositorio, ahora) {
+function registrarTurnosVigentes(repositorio, ahora, precargarInscripciones) {
   const fechas = [fechaEnParque(ahora), fechaSiguienteEnParque(ahora)];
   for (const fecha of fechas) {
     if (parqueCerrado(fecha)) {
@@ -189,12 +193,16 @@ function registrarTurnosVigentes(repositorio, ahora) {
       }
       for (const [actividad, configuracion] of Object.entries(CONFIGURACION_PARQUE.actividades)) {
         if (repositorio.obtenerTurno(actividad, inicioTurno) === null) {
-          repositorio.agregarTurno({
+          const turno = {
             actividad,
             capacidad: configuracion.capacidad,
             habilitado: true,
             inicioTurno,
-          });
+          };
+          repositorio.agregarTurno(turno);
+          if (precargarInscripciones) {
+            precargarInscripcionesTurno(repositorio, turno, hora);
+          }
         }
       }
     }
