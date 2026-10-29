@@ -9,7 +9,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "prototipo": "node prototipo/serveLocal.js",
+    "prototipo": "node --env-file-if-exists=.env prototipo/serveLocal.js",
     "lint": "eslint src test prototipo eslint.config.js",
     "format": "prettier --write src test prototipo eslint.config.js .prettierrc.json package.json",
     "format:check": "prettier --check src test prototipo eslint.config.js .prettierrc.json package.json"
